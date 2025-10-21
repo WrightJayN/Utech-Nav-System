@@ -1,0 +1,573 @@
+Here are the modifications to add the requested features. I've integrated the ability to save the graph to a JSON file, load a graph from a JSON file, and delete specific edges from a dropdown list.
+
+Here is the complete, updated HTML and JavaScript file:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Map Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .map-container {
+            position: relative;
+            cursor: crosshair;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        #mapImage {
+            display: block;
+            max-width: 100%;
+            border-radius: 0.5rem;
+            cursor: crosshair;
+        }
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 10;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 30px;
+            opacity: 0;
+            transition: opacity 0.5s, visibility 0.5s, bottom 0.5s;
+        }
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+        /* Make buttons disabled state clear */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Campus Map Graph Editor</h1>
+            <p class="text-lg text-gray-600 mt-2">Create nodes and edges for your university navigation system.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md flex flex-col gap-6 h-fit">
+                <div>
+                    <h2 class="text-xl font-semibold border-b pb-2 mb-3">Step 1: Upload Map</h2>
+                    <label for="mapUploader" class="block text-sm font-medium text-gray-700 mb-2">Select your campus map image:</label>
+                    <input type="file" id="mapUploader" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+
+                <div>
+                    <h2 class="text-xl font-semibold border-b pb-2 mb-3">Step 1b: Or Load Data</h2>
+                    <label for="jsonUploader" class="block text-sm font-medium text-gray-700 mb-2">Load a `.json` graph file (requires map):</label>
+                    <input type="file" id="jsonUploader" accept=".json,application/json" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                </div>
+                
+                <div id="historySection" class="hidden">
+                     <h2 class="text-xl font-semibold border-b pb-2 mb-3">History</h2>
+                     <div class="flex items-center gap-3">
+                        <button id="undoBtn" class="bg-gray-500 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-gray-600 transition duration-300 w-full">Undo</button>
+                        <button id="redoBtn" class="bg-gray-500 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-gray-600 transition duration-300 w-full">Redo</button>
+                    </div>
+                </div>
+
+                <div id="nodeSection" class="hidden">
+                    <h2 class="text-xl font-semibold border-b pb-2 mb-3">Step 2: Add Nodes</h2>
+                    <p class="text-sm text-gray-600 mb-3">Click on an empty map area to place a point. To select/move a node, click directly on it.</p>
+                    <div class="flex items-center gap-3">
+                        <label for="nodeName" class="sr-only">Node Name</label>
+                        <input type="text" id="nodeName" placeholder="Enter building name" class="flex-grow bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        <button id="addNodeBtn" class="bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Add Node</button>
+                    </div>
+                    <div id="nodeCoordinates" class="text-sm text-gray-500 mt-2"></div>
+                </div>
+                
+                <div id="actionsSection" class="hidden">
+                    <h2 class="text-xl font-semibold border-b pb-2 mb-3">Selected Node Actions</h2>
+                    <p id="selectedNodeText" class="text-sm text-gray-600 mb-3"></p>
+                    <button id="deleteNodeBtn" class="bg-red-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-red-700 transition duration-300 w-full">Delete Selected Node</button>
+                </div>
+
+                <div id="edgeSection" class="hidden">
+                    <h2 class="text-xl font-semibold border-b pb-2 mb-3">Step 3: Add Edges</h2>
+                    <p class="text-sm text-gray-600 mb-3">Select two nodes to create a path (edge) between them.</p>
+                    <div class="grid grid-cols-2 gap-3 items-center">
+                        <select id="fromNode" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"></select>
+                        <select id="toNode" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"></select>
+                    </div>
+                    <button id="addEdgeBtn" class="bg-green-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-green-700 transition duration-300 w-full mt-3">Add Edge</button>
+                    
+                    <div id="deleteEdgeSection" class="mt-4 hidden">
+                        <h3 class="text-lg font-medium mb-2 pt-3 border-t">Delete Edge</h3>
+                        <select id="edgeList" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-2"></select>
+                        <button id="deleteEdgeBtn" class="bg-red-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-red-700 transition duration-300 w-full">Delete Selected Edge</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 flex flex-col gap-8">
+                <div id="mapContainer" class="map-container w-full bg-white p-2 rounded-lg">
+                    <img id="mapImage" src="https://placehold.co/800x600/e2e8f0/94a3b8?text=Upload+a+Map+Image" alt="Campus Map">
+                    <canvas id="mapCanvas"></canvas>
+                </div>
+                
+                <div id="jsonSection" class="hidden bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold border-b pb-2 mb-3">Final Step: Get Your Data</h2>
+                    <p class="text-sm text-gray-600 mb-3">This is the graph data for your navigation app. Copy it or save it as a `.json` file.</p>
+                    <textarea id="jsonOutput" readonly class="w-full h-48 p-3 bg-gray-900 text-green-400 font-mono text-sm rounded-md border border-gray-700 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    <button id="copyJsonBtn" class="bg-gray-700 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-gray-800 transition duration-300 w-full mt-3">Copy JSON to Clipboard</button>
+                    <button id="saveJsonBtn" class="bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition duration-300 w-full mt-3">Save JSON as File</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const mapUploader = document.getElementById('mapUploader'), mapImage = document.getElementById('mapImage'), mapCanvas = document.getElementById('mapCanvas'), ctx = mapCanvas.getContext('2d');
+        const nodeSection = document.getElementById('nodeSection'), nodeNameInput = document.getElementById('nodeName'), addNodeBtn = document.getElementById('addNodeBtn'), nodeCoordinatesDisplay = document.getElementById('nodeCoordinates');
+        const edgeSection = document.getElementById('edgeSection'), fromNodeSelect = document.getElementById('fromNode'), toNodeSelect = document.getElementById('toNode'), addEdgeBtn = document.getElementById('addEdgeBtn');
+        const jsonSection = document.getElementById('jsonSection'), jsonOutput = document.getElementById('jsonOutput'), copyJsonBtn = document.getElementById('copyJsonBtn');
+        const historySection = document.getElementById('historySection'), undoBtn = document.getElementById('undoBtn'), redoBtn = document.getElementById('redoBtn');
+        const actionsSection = document.getElementById('actionsSection'), selectedNodeText = document.getElementById('selectedNodeText'), deleteNodeBtn = document.getElementById('deleteNodeBtn');
+        
+        // --- New Element References ---
+        const jsonUploader = document.getElementById('jsonUploader');
+        const saveJsonBtn = document.getElementById('saveJsonBtn');
+        const deleteEdgeSection = document.getElementById('deleteEdgeSection');
+        const edgeList = document.getElementById('edgeList');
+        const deleteEdgeBtn = document.getElementById('deleteEdgeBtn');
+        // --- End New Element References ---
+
+        // State
+        let nodes = [], edges = [], pendingNode = null, nextNodeId = 0;
+        let selectedNodeId = null, isDragging = false, dragStartX = 0, dragStartY = 0;
+        
+        // History State
+        let history = [];
+        let historyIndex = -1;
+
+        // --- Event Listeners ---
+        mapUploader.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    mapImage.src = event.target.result;
+                    mapImage.onload = () => {
+                        mapCanvas.width = mapImage.clientWidth;
+                        mapCanvas.height = mapImage.clientHeight;
+                        nodeSection.classList.remove('hidden');
+                        historySection.classList.remove('hidden');
+                        // Reset state when loading a new map
+                        nodes = [];
+                        edges = [];
+                        nextNodeId = 0;
+                        selectedNodeId = null;
+                        pendingNode = null;
+                        history = [];
+                        historyIndex = -1;
+                        saveState(); // Initial empty state
+                    }
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // --- New JSON Uploader Listener ---
+        jsonUploader.addEventListener('change', (e) => {
+            if (mapImage.src.includes('placehold.co')) {
+                showToast("Please upload a map image *before* loading graph data.");
+                e.target.value = null; // Reset input
+                return;
+            }
+
+            if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (data && Array.isArray(data.nodes) && Array.isArray(data.edges)) {
+                            nodes = data.nodes;
+                            edges = data.edges;
+                            
+                            // Recalculate nextNodeId
+                            const maxId = data.nodes.length > 0 ? Math.max(...data.nodes.map(n => n.id)) : -1;
+                            nextNodeId = maxId + 1;
+                            
+                            // Show all relevant sections
+                            nodeSection.classList.remove('hidden');
+                            historySection.classList.remove('hidden');
+                            if (nodes.length >= 2) edgeSection.classList.remove('hidden');
+                            if (nodes.length > 0) jsonSection.classList.remove('hidden');
+
+                            saveState(); // This will call updateUI() which calls draw()
+                            showToast("Graph data loaded successfully.");
+                        } else {
+                            showToast("Invalid JSON file. Missing 'nodes' or 'edges' array.");
+                        }
+                    } catch (error) {
+                        showToast("Failed to parse JSON file. " + error.message);
+                    } finally {
+                        e.target.value = null; // Reset input
+                    }
+                };
+                reader.readAsDataText(file);
+            }
+        });
+
+        mapImage.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+
+	    const { x, y } = getMousePos(e);
+            const clickedNode = getNodeAt(x, y);
+
+            if (clickedNode) {
+                selectedNodeId = clickedNode.id;
+                isDragging = true;
+                dragStartX = x - clickedNode.x;
+                dragStartY = y - clickedNode.y;
+                mapImage.style.cursor = 'grabbing';
+                updateActionsUI();
+                draw();
+            }
+        });
+
+        mapImage.addEventListener('mousemove', (e) => {
+            if (isDragging && selectedNodeId !== null) {
+                const { x, y } = getMousePos(e);
+                const node = nodes.find(n => n.id === selectedNodeId);
+                if (node) {
+                    node.x = x - dragStartX;
+                    node.y = y - dragStartY;
+                    recalculateEdgeWeights(node.id);
+                    updateJsonOutput(); // live update
+                    draw();
+                }
+            } else {
+                 const { x, y } = getMousePos(e);
+                 mapImage.style.cursor = getNodeAt(x, y) ? 'pointer' : 'crosshair';
+            }
+        });
+
+        mapImage.addEventListener('mouseup', (e) => {
+             if (isDragging) {
+                isDragging = false;
+                mapImage.style.cursor = 'pointer';
+                saveState();
+            }
+        });
+        
+        mapImage.addEventListener('click', (e) => {
+            if (isDragging) return; // Prevent creating node after drag
+            const { x, y } = getMousePos(e);
+            const clickedNode = getNodeAt(x, y);
+
+            if (!clickedNode) {
+                pendingNode = { x, y };
+                selectedNodeId = null;
+                nodeCoordinatesDisplay.textContent = `Selected: (X: ${Math.round(x)}, Y: ${Math.round(y)})`;
+                nodeNameInput.focus();
+                updateActionsUI();
+                draw();
+            } else {
+                selectedNodeId = clickedNode.id;
+                updateActionsUI();
+                draw();
+            }
+        });
+
+        addNodeBtn.addEventListener('click', () => {
+            const name = nodeNameInput.value.trim();
+            if (!name) { showToast("Please enter a name."); return; }
+            if (!pendingNode) { showToast("Please click on the map first."); return; }
+
+            nodes.push({ id: nextNodeId++, name: name, x: pendingNode.x, y: pendingNode.y });
+            pendingNode = null;
+            nodeNameInput.value = '';
+            nodeCoordinatesDisplay.textContent = '';
+            
+            if (nodes.length >= 2) edgeSection.classList.remove('hidden');
+            saveState();
+            showToast(`Node "${name}" added.`);
+        });
+
+        addEdgeBtn.addEventListener('click', () => {
+            const fromId = parseInt(fromNodeSelect.value), toId = parseInt(toNodeSelect.value);
+            if (fromId === toId) { showToast("Cannot connect a node to itself."); return; }
+            if (edges.some(e => (e.from === fromId && e.to === toId) || (e.from === toId && e.to === fromId))) {
+                showToast("This edge already exists."); return;
+            }
+            
+            const fromNode = nodes.find(n => n.id === fromId), toNode = nodes.find(n => n.id === toId);
+            const weight = calculateDistance(fromNode, toNode);
+            edges.push({ from: fromId, to: toId, weight: parseFloat(weight.toFixed(2)) });
+            
+            saveState();
+            showToast(`Edge created between "${fromNode.name}" and "${toNode.name}".`);
+        });
+
+        // --- New Delete Specific Edge Listener ---
+        deleteEdgeBtn.addEventListener('click', () => {
+            const selectedIndex = edgeList.value;
+            if (selectedIndex === null || selectedIndex === "") {
+                showToast("No edge selected."); return;
+            }
+            const indexToDelete = parseInt(selectedIndex);
+            if (isNaN(indexToDelete) || indexToDelete < 0 || indexToDelete >= edges.length) {
+                showToast("Invalid edge selection."); return;
+            }
+
+            const removed = edges.splice(indexToDelete, 1)[0]; // Remove the edge by its index
+            const fromNode = nodes.find(n => n.id === removed.from);
+            const toNode = nodes.find(n => n.id === removed.to);
+            saveState();
+            showToast(`Removed edge between ${fromNode.name} and ${toNode.name}`);
+        });
+        // --- End New Listener ---
+
+        deleteNodeBtn.addEventListener('click', () => {
+            if (selectedNodeId === null) return;
+            const nodeToDelete = nodes.find(n => n.id === selectedNodeId);
+            nodes = nodes.filter(n => n.id !== selectedNodeId);
+            edges = edges.filter(e => e.from !== selectedNodeId && e.to !== selectedNodeId);
+            selectedNodeId = null;
+            updateActionsUI();
+            saveState();
+            showToast(`Node "${nodeToDelete.name}" deleted.`);
+        });
+
+        undoBtn.addEventListener('click', undo);
+        redoBtn.addEventListener('click', redo);
+
+        copyJsonBtn.addEventListener('click', () => {
+            jsonOutput.select();
+            document.execCommand('copy');
+            showToast("JSON copied to clipboard!");
+        });
+
+        // --- New Save JSON Listener ---
+        saveJsonBtn.addEventListener('click', () => {
+            const dataStr = jsonOutput.value;
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'campus-map-graph.json';
+            document.body.appendChild(a); // Required for Firefox
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("JSON file saved.");
+        });
+        // --- End New Listener ---
+
+        // --- History Functions ---
+        function saveState() {
+            // Clear future states on new action
+            history = history.slice(0, historyIndex + 1);
+            
+            // Deep copy of current state
+            const state = {
+                nodes: JSON.parse(JSON.stringify(nodes)),
+                edges: JSON.parse(JSON.stringify(edges)),
+                nextNodeId: nextNodeId
+            };
+            history.push(state);
+            historyIndex = history.length - 1;
+            
+            updateUI();
+        }
+
+        function restoreState(state) {
+            nodes = JSON.parse(JSON.stringify(state.nodes));
+            edges = JSON.parse(JSON.stringify(state.edges));
+            nextNodeId = state.nextNodeId;
+            updateUI();
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                restoreState(history[historyIndex]);
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                restoreState(history[historyIndex]);
+            }
+        }
+        
+        // --- Helper & UI Functions ---
+        function updateUI() {
+            updateNodeDropdowns();
+            updateEdgeDropdown(); // --- New Function Call ---
+            updateJsonOutput();
+            updateHistoryButtons();
+            updateActionsUI();
+            // Hide/show sections based on state
+            edgeSection.classList.toggle('hidden', nodes.length < 2);
+            jsonSection.classList.toggle('hidden', nodes.length === 0);
+            draw();
+        }
+        
+        function getMousePos(evt) {
+            const rect = mapImage.getBoundingClientRect();
+            return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+        }
+        
+        function getNodeAt(x, y) {
+            // Find in reverse order so top nodes are found first
+            for (let i = nodes.length - 1; i >= 0; i--) {
+                const node = nodes[i];
+                const distance = calculateDistance({x, y}, node);
+                if (distance < 10) return node; // 10px click radius
+            }
+            return null;
+        }
+
+        function calculateDistance(p1, p2) {
+             return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+        }
+
+        function recalculateEdgeWeights(nodeId) {
+            edges.forEach(edge => {
+                if (edge.from === nodeId || edge.to === nodeId) {
+                    const fromNode = nodes.find(n => n.id === edge.from);
+                    const toNode = nodes.find(n => n.id === edge.to);
+                    edge.weight = parseFloat(calculateDistance(fromNode, toNode).toFixed(2));
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
+
+            ctx.strokeStyle = 'rgba(0, 119, 255, 0.9)';
+            ctx.lineWidth = 3;
+            edges.forEach(edge => {
+                const from = nodes.find(n => n.id === edge.from), to = nodes.find(n => n.id === edge.to);
+                if (from && to) {
+                    ctx.beginPath();
+                    ctx.moveTo(from.x, from.y);
+                    ctx.lineTo(to.x, to.y);
+                    ctx.stroke();
+                }
+            });
+
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = (node.id === selectedNodeId) ? 'rgba(255, 165, 0, 1)' : 'rgba(0, 119, 255, 1)';
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = 'black';
+                ctx.font = 'bold 12px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(node.name, node.x, node.y - 12);
+            });
+
+            if (pendingNode) {
+                ctx.beginPath();
+                ctx.arc(pendingNode.x, pendingNode.y, 7, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                ctx.fill();
+            }
+        }
+
+        function updateNodeDropdowns() {
+            fromNodeSelect.innerHTML = '';
+            toNodeSelect.innerHTML = '';
+            nodes.forEach(node => {
+                fromNodeSelect.add(new Option(`${node.name}`, node.id));
+                toNodeSelect.add(new Option(`${node.name}`, node.id));
+            });
+            if (nodes.length > 1) toNodeSelect.selectedIndex = 1;
+        }
+
+        // --- New Function to Update Edge Deletion Dropdown ---
+        function updateEdgeDropdown() {
+            edgeList.innerHTML = '';
+            if (edges.length === 0) {
+                deleteEdgeSection.classList.add('hidden');
+                return;
+            }
+            
+            deleteEdgeSection.classList.remove('hidden');
+            edges.forEach((edge, index) => {
+                const fromNode = nodes.find(n => n.id === edge.from);
+                const toNode = nodes.find(n => n.id === edge.to);
+                if (fromNode && toNode) {
+                    const optionText = `${fromNode.name} ↔ ${toNode.name}`;
+                    edgeList.add(new Option(optionText, index)); // Use index as value
+                }
+            });
+        }
+        // --- End New Function ---
+        
+        function updateJsonOutput() {
+            jsonSection.classList.toggle('hidden', nodes.length === 0);
+            jsonOutput.value = JSON.stringify({ nodes, edges }, null, 2);
+        }
+        
+        function updateHistoryButtons() {
+            undoBtn.disabled = historyIndex <= 0;
+            redoBtn.disabled = historyIndex >= history.length - 1;
+        }
+
+        function updateActionsUI() {
+            if (selectedNodeId !== null) {
+                const node = nodes.find(n => n.id === selectedNodeId);
+                selectedNodeText.textContent = `Selected: ${node.name} (ID: ${node.id})`;
+                actionsSection.classList.remove('hidden');
+            } else {
+                actionsSection.classList.add('hidden');
+            }
+        }
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        window.addEventListener('resize', () => {
+            if(mapImage.src && !mapImage.src.includes('placehold.co')) {
+                mapCanvas.width = mapImage.clientWidth;
+                mapCanvas.height = mapImage.clientHeight;
+                draw();
+            }
+        });
+
+        // Initial call to set button states
+        updateHistoryButtons();
+    </script>
+</body>
+</html>
+```

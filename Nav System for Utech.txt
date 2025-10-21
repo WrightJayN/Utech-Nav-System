@@ -1,0 +1,24 @@
+Nav System for Utech
+
+Inputs
+-File = Nodes (Intersections and Building Entrances), Edges (Physical Roads), Weight (Distance of each edge in unit: int km), and direction (Direction of traffic on the road)
+-User = Source Node and Destination Node
+-Building-Node Dictionary (Associate each Building with a Node)
+
+Processes
+-Find path using Breadth First Search algorithm
+
+Outputs
+-Traverse the sequence while highlighting or changing the color of each edge
+
+Data Structure: Array of Linked List (Adjacency List)
+Where each header of the linked list is a different node and next pointer points to the a nodes that the header is adjacent with.
+
+
+
+Solution Design:
+
+1. Know how much nodes and edges we will need.
+2. Create a adjacent matrix or list
+3. Perform BFS with source and destination nodes
+4. Plot the graph on the Utech map using JavaScript

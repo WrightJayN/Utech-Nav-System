@@ -1,0 +1,1639 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "name": "CALVIN McKAIN LIBRARY",
+      "x": 446.2789001464844,
+      "y": 778.490966796875
+    },
+    {
+      "id": 1,
+      "name": "CALVIN McKAIN LIBRARY ENTRANCE",
+      "x": 395.1753234863281,
+      "y": 763.96875
+    },
+    {
+      "id": 2,
+      "name": "Main Entrance",
+      "x": 375.1753234863281,
+      "y": 902.9687805175781
+    },
+    {
+      "id": 3,
+      "name": "Monserrat Close Turnoff",
+      "x": 392.1753234863281,
+      "y": 845.857666015625
+    },
+    {
+      "id": 4,
+      "name": "Round-a-bout",
+      "x": 388.1753234863281,
+      "y": 723.857666015625
+    },
+    {
+      "id": 5,
+      "name": "Jamaica Boulevard T-shape intersection",
+      "x": 500.1753234863281,
+      "y": 703.857666015625
+    },
+    {
+      "id": 6,
+      "name": "COHS Turnoff",
+      "x": 501.1753234863281,
+      "y": 649.857666015625
+    },
+    {
+      "id": 7,
+      "name": "College of Health and Science(COHS))",
+      "x": 424.1753234863281,
+      "y": 649.857666015625
+    },
+    {
+      "id": 8,
+      "name": "Admin Building Turnoff",
+      "x": 502.1753234863281,
+      "y": 589.3020935058594
+    },
+    {
+      "id": 10,
+      "name": "SOE Building Entrance",
+      "x": 505.1753234863281,
+      "y": 471.3020935058594
+    },
+    {
+      "id": 11,
+      "name": "School of Engineering (SOE - Building 1)",
+      "x": 528.1753234863281,
+      "y": 470.3020935058594
+    },
+    {
+      "id": 12,
+      "name": "Admin Building Entrance",
+      "x": 489.1753234863281,
+      "y": 557.3020935058594
+    },
+    {
+      "id": 13,
+      "name": "Social Security Office",
+      "x": 481.1753234863281,
+      "y": 528.3020935058594
+    },
+    {
+      "id": 14,
+      "name": "Admin Building road exit",
+      "x": 479.1753234863281,
+      "y": 471.3020935058594
+    },
+    {
+      "id": 15,
+      "name": "Faculty of Education and Liberal Studies (FELS)",
+      "x": 420.1753234863281,
+      "y": 464.3020935058594
+    },
+    {
+      "id": 16,
+      "name": "Lecture Theatre 10, etc",
+      "x": 429.1753234863281,
+      "y": 492.3020935058594
+    },
+    {
+      "id": 17,
+      "name": "School of Computing and Information Technology (SCIT)",
+      "x": 465.1753234863281,
+      "y": 509.3020935058594
+    },
+    {
+      "id": 18,
+      "name": "Printery",
+      "x": 453.1753234863281,
+      "y": 514.3020935058594
+    },
+    {
+      "id": 19,
+      "name": "Student Finances",
+      "x": 454.1753234863281,
+      "y": 520.3020935058594
+    },
+    {
+      "id": 20,
+      "name": "Jamaica Boulevard - Bahamas Avenue Intersection",
+      "x": 343.1753234863281,
+      "y": 719.3020935058594
+    },
+    {
+      "id": 21,
+      "name": "Bahamas Avenue Dead End",
+      "x": 364.1753234863281,
+      "y": 649.3020935058594
+    },
+    {
+      "id": 22,
+      "name": "Faculty of the Built Environment",
+      "x": 323.1753234863281,
+      "y": 619.3020935058594
+    },
+    {
+      "id": 23,
+      "name": "Caribbean School of Architecture",
+      "x": 276.1753234863281,
+      "y": 646.3020935058594
+    },
+    {
+      "id": 24,
+      "name": "Rx",
+      "x": 387.1753234863281,
+      "y": 655.3020935058594
+    },
+    {
+      "id": 25,
+      "name": "Jamaica Boulevard - Dominica crescent - Grand Cayman Avenue Intersection",
+      "x": 229.17532348632812,
+      "y": 688.3020935058594
+    },
+    {
+      "id": 26,
+      "name": "Pavilion",
+      "x": 194.17532348632812,
+      "y": 804.3020935058594
+    },
+    {
+      "id": 27,
+      "name": "Faculty of Science and Sport",
+      "x": 90.17532348632812,
+      "y": 842.1909790039062
+    },
+    {
+      "id": 28,
+      "name": "Front Field second Entrance",
+      "x": 222.27890014648438,
+      "y": 709.4474945068359
+    },
+    {
+      "id": 29,
+      "name": "Front field 1",
+      "x": 283.2789001464844,
+      "y": 760.3750610351562
+    },
+    {
+      "id": 30,
+      "name": "Front field 2",
+      "x": 299.2789001464844,
+      "y": 877.3750610351562
+    },
+    {
+      "id": 31,
+      "name": "Technology Innovation Centre Entrance",
+      "x": 146.27890014648438,
+      "y": 672.0272064208984
+    },
+    {
+      "id": 32,
+      "name": "Technology Innovation Centre",
+      "x": 175.27890014648438,
+      "y": 645.0272064208984
+    },
+    {
+      "id": 33,
+      "name": "Jamaica Boulevard - Belize Avenue Intersection",
+      "x": 149.27890014648438,
+      "y": 551.0272064208984
+    },
+    {
+      "id": 34,
+      "name": "Cafeteria",
+      "x": 242.27890014648438,
+      "y": 550.0272064208984
+    },
+    {
+      "id": 35,
+      "name": "Maintenance & H",
+      "x": 246.27890014648438,
+      "y": 522.0272064208984
+    },
+    {
+      "id": 36,
+      "name": "Facilities Management",
+      "x": 290.2789001464844,
+      "y": 509.02720642089844
+    },
+    {
+      "id": 37,
+      "name": "Construction Engineering Lab",
+      "x": 299.2789001464844,
+      "y": 552.0272064208984
+    },
+    {
+      "id": 39,
+      "name": "College of Business and Management",
+      "x": 379.2789001464844,
+      "y": 543.0272064208984
+    },
+    {
+      "id": 40,
+      "name": "College of Business & Management (Front Building)",
+      "x": 381.2789001464844,
+      "y": 575.0272064208984
+    },
+    {
+      "id": 41,
+      "name": "Dominica Crescent Right Corner",
+      "x": 259.2789001464844,
+      "y": 600.0272064208984
+    },
+    {
+      "id": 42,
+      "name": "Dominica Crescent Left Corner",
+      "x": 334.2789001464844,
+      "y": 569.0272064208984
+    },
+    {
+      "id": 43,
+      "name": "Main Parking",
+      "x": 521.2789001464844,
+      "y": 813.1866760253906
+    },
+    {
+      "id": 44,
+      "name": "Monserrat Close to Main Parking Turnoff",
+      "x": 513.2789001464844,
+      "y": 882.1866760253906
+    },
+    {
+      "id": 45,
+      "name": "Walk through Gate",
+      "x": 505.2789001464844,
+      "y": 911.1866760253906
+    },
+    {
+      "id": 46,
+      "name": "Jamaica Boulevard - St.Kitts Close - Barbados Avenue Intersection",
+      "x": 502.2789001464844,
+      "y": 427.44749450683594
+    },
+    {
+      "id": 47,
+      "name": "Academic Management",
+      "x": 533.2789001464844,
+      "y": 384.44749450683594
+    },
+    {
+      "id": 48,
+      "name": "Dominica Crescent - Barbados Avenue Intersection",
+      "x": 333.2789001464844,
+      "y": 466.44749450683594
+    },
+    {
+      "id": 49,
+      "name": "Sculpture Park",
+      "x": 405.2789001464844,
+      "y": 409.44749450683594
+    },
+    {
+      "id": 50,
+      "name": "Sculpture Park Entrance",
+      "x": 456.2789001464844,
+      "y": 435.44749450683594
+    },
+    {
+      "id": 51,
+      "name": "Faculty of Education and Liberal Studies Left SIde",
+      "x": 379.2789001464844,
+      "y": 470.44749450683594
+    },
+    {
+      "id": 52,
+      "name": "Credit Union",
+      "x": 559.2789001464844,
+      "y": 309.44749450683594
+    },
+    {
+      "id": 53,
+      "name": "Admissions",
+      "x": 591.2789001464844,
+      "y": 285.44749450683594
+    },
+    {
+      "id": 54,
+      "name": "Student Services Entrance",
+      "x": 515.2789001464844,
+      "y": 332.44749450683594
+    },
+    {
+      "id": 55,
+      "name": "Student Services",
+      "x": 478.2789001464844,
+      "y": 301.44749450683594
+    },
+    {
+      "id": 56,
+      "name": "Medical Centre",
+      "x": 511.2789001464844,
+      "y": 285.44749450683594
+    },
+    {
+      "id": 57,
+      "name": "Human Resources",
+      "x": 564.2789001464844,
+      "y": 279.85328674316406
+    },
+    {
+      "id": 58,
+      "name": "Student Services Turnoff",
+      "x": 489.2789001464844,
+      "y": 348.85328674316406
+    },
+    {
+      "id": 59,
+      "name": "Jamaica Boulevard - St.Lucia Avenue Intersection",
+      "x": 450.2789001464844,
+      "y": 326.85328674316406
+    },
+    {
+      "id": 60,
+      "name": "Juici Patties",
+      "x": 382.2789001464844,
+      "y": 282.85328674316406
+    },
+    {
+      "id": 61,
+      "name": "Grocery Store",
+      "x": 380.2789001464844,
+      "y": 257.85328674316406
+    },
+    {
+      "id": 62,
+      "name": "Volleyball outside court",
+      "x": 373.2789001464844,
+      "y": 230.85328674316406
+    },
+    {
+      "id": 63,
+      "name": "Farquson Hall",
+      "x": 410.2789001464844,
+      "y": 221.85328674316406
+    },
+    {
+      "id": 64,
+      "name": "Farquson Hall Cafeteria",
+      "x": 414.2789001464844,
+      "y": 278.85328674316406
+    },
+    {
+      "id": 65,
+      "name": "School of Hospitality and Tourism",
+      "x": 365.2789001464844,
+      "y": 318.85328674316406
+    },
+    {
+      "id": 66,
+      "name": "Drawing Room",
+      "x": 449.2789001464844,
+      "y": 367.85328674316406
+    },
+    {
+      "id": 67,
+      "name": "Lilian's Restaurant",
+      "x": 456.2789001464844,
+      "y": 393.85328674316406
+    },
+    {
+      "id": 69,
+      "name": "NCB atm entrance",
+      "x": 450.2789001464844,
+      "y": 275.85328674316406
+    },
+    {
+      "id": 70,
+      "name": "Juici Patties Entrance",
+      "x": 419.2789001464844,
+      "y": 334.85328674316406
+    },
+    {
+      "id": 71,
+      "name": "Auditorium",
+      "x": 371.2789001464844,
+      "y": 136.20110321044922
+    },
+    {
+      "id": 72,
+      "name": "Netball Court",
+      "x": 362.2789001464844,
+      "y": 86.28803253173828
+    },
+    {
+      "id": 73,
+      "name": "Farquson Hall Right Entrance",
+      "x": 461.2789001464844,
+      "y": 226.5054473876953
+    },
+    {
+      "id": 74,
+      "name": "St.Lucia Avenue - Guyana Avenue Intersection",
+      "x": 468.2789001464844,
+      "y": 194.5054473876953
+    },
+    {
+      "id": 75,
+      "name": "Back Field Entrance",
+      "x": 428.2789001464844,
+      "y": 195.5054473876953
+    },
+    {
+      "id": 76,
+      "name": "Garvey Hall",
+      "x": 323.2789001464844,
+      "y": 236.5054473876953
+    },
+    {
+      "id": 77,
+      "name": "School of Nursing",
+      "x": 272.2789001464844,
+      "y": 247.5054473876953
+    },
+    {
+      "id": 78,
+      "name": "Swimming Pool",
+      "x": 311.2789001464844,
+      "y": 157.5054473876953
+    },
+    {
+      "id": 80,
+      "name": "Skating Half Pipe",
+      "x": 297.2789001464844,
+      "y": 204.72280883789062
+    },
+    {
+      "id": 81,
+      "name": "Grenada Avenue - Guyana Avenue Intersection",
+      "x": 237.27890014648438,
+      "y": 216.72280883789062
+    },
+    {
+      "id": 82,
+      "name": "Antigua & Barbuda Crescent - Guyana Avenue Intersection",
+      "x": 350.2789001464844,
+      "y": 205.33151817321777
+    },
+    {
+      "id": 83,
+      "name": "Antigua and Barbuda Left Corner",
+      "x": 326.2789001464844,
+      "y": 108.75180053710938
+    },
+    {
+      "id": 84,
+      "name": "Grenada Avenue - Antigua and Barbuda Crescent Intersection",
+      "x": 222.27890014648438,
+      "y": 130.75180053710938
+    },
+    {
+      "id": 85,
+      "name": "Chapel",
+      "x": 391.2789001464844,
+      "y": 379.2590637207031
+    },
+    {
+      "id": 86,
+      "name": "Centre of the ARTS",
+      "x": 346.2789001464844,
+      "y": 384.2590637207031
+    },
+    {
+      "id": 87,
+      "name": "Student's Union office",
+      "x": 357.2789001464844,
+      "y": 363.2590637207031
+    },
+    {
+      "id": 88,
+      "name": "Lilian's Restaurant Entrance",
+      "x": 495.2789001464844,
+      "y": 389.2590637207031
+    },
+    {
+      "id": 89,
+      "name": "COHS back entrance",
+      "x": 431.2789001464844,
+      "y": 611.2735900878906
+    },
+    {
+      "id": 90,
+      "name": "FELS Front Entrance",
+      "x": 384.2789001464844,
+      "y": 500.3750305175781
+    },
+    {
+      "id": 91,
+      "name": "Shared Facilities Entrance",
+      "x": 260.2789001464844,
+      "y": 484.3750305175781
+    },
+    {
+      "id": 92,
+      "name": "Shared Facilities",
+      "x": 203.27890014648438,
+      "y": 476.3750305175781
+    },
+    {
+      "id": 93,
+      "name": "Tech-Ed Workshop",
+      "x": 277.2789001464844,
+      "y": 425.3750305175781
+    },
+    {
+      "id": 94,
+      "name": "Lecture Theatre",
+      "x": 202.27890014648438,
+      "y": 416.3750305175781
+    },
+    {
+      "id": 95,
+      "name": "Environmental Laboratory",
+      "x": 275.2789001464844,
+      "y": 402.3750305175781
+    },
+    {
+      "id": 96,
+      "name": "Shed",
+      "x": 274.2789001464844,
+      "y": 374.3750305175781
+    },
+    {
+      "id": 97,
+      "name": "Burger King",
+      "x": 300.2789001464844,
+      "y": 367.3750305175781
+    },
+    {
+      "id": 98,
+      "name": "Tech-Ed Turnoff",
+      "x": 323.2789001464844,
+      "y": 418.8822784423828
+    },
+    {
+      "id": 99,
+      "name": "Dominica Crescent - Jamaica Boulevard Intersection",
+      "x": 317.2789001464844,
+      "y": 351.8822784423828
+    },
+    {
+      "id": 100,
+      "name": "SOHT Entrance",
+      "x": 376.2789001464844,
+      "y": 342.8822784423828
+    },
+    {
+      "id": 101,
+      "name": "Hotel",
+      "x": 273.2789001464844,
+      "y": 306.8822784423828
+    },
+    {
+      "id": 102,
+      "name": "Hotel Entrance",
+      "x": 266.2789001464844,
+      "y": 357.5924072265625
+    },
+    {
+      "id": 103,
+      "name": "Jamaica Boulevard - Grenada Avenue",
+      "x": 250.27890014648438,
+      "y": 357.85328674316406
+    },
+    {
+      "id": 104,
+      "name": "Back Field",
+      "x": 442.2789001464844,
+      "y": 143.0706558227539
+    },
+    {
+      "id": 105,
+      "name": "Barn",
+      "x": 197.27890014648438,
+      "y": 317.59239959716797
+    },
+    {
+      "id": 108,
+      "name": "Haiti Avenue - St.Vincent & Grenadines Close Intersection",
+      "x": 138.27890014648438,
+      "y": 291.59239959716797
+    },
+    {
+      "id": 109,
+      "name": "Jamaica Boulevard - Turks & Caicos Close Intersection",
+      "x": 150.27890014648438,
+      "y": 442.59239959716797
+    },
+    {
+      "id": 110,
+      "name": "Jamaica Boulevard - Haiti Close Intersection",
+      "x": 151.27890014648438,
+      "y": 422.59239959716797
+    },
+    {
+      "id": 111,
+      "name": "Shared Facilities Back Entrance",
+      "x": 155.27890014648438,
+      "y": 469.59239959716797
+    },
+    {
+      "id": 112,
+      "name": "Western Packing lot",
+      "x": 61.278900146484375,
+      "y": 436.7953338623047
+    },
+    {
+      "id": 113,
+      "name": ". (Western Building)",
+      "x": 56.278900146484375,
+      "y": 466.7953338623047
+    },
+    {
+      "id": 114,
+      "name": "Building Beside Barn",
+      "x": 171.27890014648438,
+      "y": 354.59239959716797
+    },
+    {
+      "id": 115,
+      "name": "Building beside Barn Entrance",
+      "x": 193.27890014648438,
+      "y": 373.59239959716797
+    },
+    {
+      "id": 116,
+      "name": "Day Care Entrance",
+      "x": 115.27890014648438,
+      "y": 245.59239959716797
+    },
+    {
+      "id": 117,
+      "name": "Day Care",
+      "x": 128.27890014648438,
+      "y": 228.59239959716797
+    },
+    {
+      "id": 118,
+      "name": "West Gate",
+      "x": 49.278900146484375,
+      "y": 294.59239959716797
+    },
+    {
+      "id": 119,
+      "name": "Barn Second Entrance",
+      "x": 200.27890014648438,
+      "y": 283.59239959716797
+    },
+    {
+      "id": 120,
+      "name": "Halls A-F",
+      "x": 187.27890014648438,
+      "y": 217.59239959716797
+    },
+    {
+      "id": 121,
+      "name": "St.Vincent & Grenadines Close - Grenada Avenue Intersection",
+      "x": 236.27890014648438,
+      "y": 280.63587951660156
+    },
+    {
+      "id": 122,
+      "name": "School of Nursing Entrance",
+      "x": 268.2789001464844,
+      "y": 216.4619903564453
+    },
+    {
+      "id": 123,
+      "name": "Tennis Court",
+      "x": 258.2789001464844,
+      "y": 169.1575927734375
+    },
+    {
+      "id": 124,
+      "name": "Main Admin Building",
+      "x": 462.2789001464844,
+      "y": 556.3170776367188
+    },
+    {
+      "id": 125,
+      "name": ".(Triangle Building Entrance)",
+      "x": 314.2789001464844,
+      "y": 518.0127258300781
+    },
+    {
+      "id": 126,
+      "name": ".(Triangle Building)",
+      "x": 344.2789001464844,
+      "y": 518.0127258300781
+    },
+    {
+      "id": 127,
+      "name": "Student services Back Building Entrance",
+      "x": 521.2789001464844,
+      "y": 186.76628875732422
+    },
+    {
+      "id": 128,
+      "name": "Student Services Back Building",
+      "x": 543.2789001464844,
+      "y": 220.76628875732422
+    },
+    {
+      "id": 129,
+      "name": "Faculty of Law",
+      "x": 586.2789001464844,
+      "y": 196.8822455406189
+    },
+    {
+      "id": 130,
+      "name": "Faculty of Law Entrance",
+      "x": 594.2789001464844,
+      "y": 170.8822455406189
+    },
+    {
+      "id": 131,
+      "name": "Dennis Johnson Hall",
+      "x": 594.2789001464844,
+      "y": 34.70832443237305
+    },
+    {
+      "id": 132,
+      "name": "Back Gate",
+      "x": 620.2789001464844,
+      "y": 24.722816467285156
+    },
+    {
+      "id": 133,
+      "name": "Dennis Johnson Hall Entrance",
+      "x": 613.2789001464844,
+      "y": 43.722816467285156
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 1,
+      "weight": 53.13
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "weight": 59.59
+    },
+    {
+      "from": 3,
+      "to": 1,
+      "weight": 81.94
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "weight": 40.72
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "weight": 113.77
+    },
+    {
+      "from": 6,
+      "to": 5,
+      "weight": 54.01
+    },
+    {
+      "from": 7,
+      "to": 6,
+      "weight": 77
+    },
+    {
+      "from": 8,
+      "to": 6,
+      "weight": 60.56
+    },
+    {
+      "from": 10,
+      "to": 8,
+      "weight": 118.04
+    },
+    {
+      "from": 10,
+      "to": 11,
+      "weight": 23.02
+    },
+    {
+      "from": 13,
+      "to": 12,
+      "weight": 30.08
+    },
+    {
+      "from": 15,
+      "to": 14,
+      "weight": 59.41
+    },
+    {
+      "from": 10,
+      "to": 14,
+      "weight": 26
+    },
+    {
+      "from": 16,
+      "to": 14,
+      "weight": 54.23
+    },
+    {
+      "from": 17,
+      "to": 14,
+      "weight": 40.5
+    },
+    {
+      "from": 18,
+      "to": 17,
+      "weight": 13
+    },
+    {
+      "from": 19,
+      "to": 17,
+      "weight": 15.56
+    },
+    {
+      "from": 20,
+      "to": 4,
+      "weight": 45.23
+    },
+    {
+      "from": 21,
+      "to": 20,
+      "weight": 73.08
+    },
+    {
+      "from": 22,
+      "to": 21,
+      "weight": 50.8
+    },
+    {
+      "from": 23,
+      "to": 21,
+      "weight": 88.05
+    },
+    {
+      "from": 24,
+      "to": 21,
+      "weight": 23.77
+    },
+    {
+      "from": 25,
+      "to": 20,
+      "weight": 118.14
+    },
+    {
+      "from": 27,
+      "to": 26,
+      "weight": 110.69
+    },
+    {
+      "from": 28,
+      "to": 25,
+      "weight": 22.24
+    },
+    {
+      "from": 28,
+      "to": 26,
+      "weight": 98.93
+    },
+    {
+      "from": 29,
+      "to": 28,
+      "weight": 79.46
+    },
+    {
+      "from": 2,
+      "to": 30,
+      "weight": 80.1
+    },
+    {
+      "from": 29,
+      "to": 30,
+      "weight": 118.09
+    },
+    {
+      "from": 42,
+      "to": 41,
+      "weight": 81.15
+    },
+    {
+      "from": 25,
+      "to": 41,
+      "weight": 93.27
+    },
+    {
+      "from": 31,
+      "to": 32,
+      "weight": 39.62
+    },
+    {
+      "from": 25,
+      "to": 31,
+      "weight": 84.48
+    },
+    {
+      "from": 31,
+      "to": 33,
+      "weight": 121.04
+    },
+    {
+      "from": 34,
+      "to": 33,
+      "weight": 93.01
+    },
+    {
+      "from": 35,
+      "to": 34,
+      "weight": 28.28
+    },
+    {
+      "from": 37,
+      "to": 36,
+      "weight": 43.93
+    },
+    {
+      "from": 34,
+      "to": 37,
+      "weight": 57.04
+    },
+    {
+      "from": 35,
+      "to": 37,
+      "weight": 60.9
+    },
+    {
+      "from": 36,
+      "to": 35,
+      "weight": 45.88
+    },
+    {
+      "from": 34,
+      "to": 36,
+      "weight": 63.13
+    },
+    {
+      "from": 42,
+      "to": 40,
+      "weight": 47.38
+    },
+    {
+      "from": 39,
+      "to": 40,
+      "weight": 32.06
+    },
+    {
+      "from": 42,
+      "to": 39,
+      "weight": 51.97
+    },
+    {
+      "from": 24,
+      "to": 4,
+      "weight": 68.56
+    },
+    {
+      "from": 24,
+      "to": 40,
+      "weight": 80.49
+    },
+    {
+      "from": 44,
+      "to": 43,
+      "weight": 69.46
+    },
+    {
+      "from": 3,
+      "to": 44,
+      "weight": 126.44
+    },
+    {
+      "from": 5,
+      "to": 43,
+      "weight": 111.35
+    },
+    {
+      "from": 45,
+      "to": 44,
+      "weight": 30.08
+    },
+    {
+      "from": 46,
+      "to": 10,
+      "weight": 43.95
+    },
+    {
+      "from": 47,
+      "to": 46,
+      "weight": 53.01
+    },
+    {
+      "from": 49,
+      "to": 50,
+      "weight": 57.25
+    },
+    {
+      "from": 48,
+      "to": 50,
+      "weight": 126.85
+    },
+    {
+      "from": 49,
+      "to": 48,
+      "weight": 91.83
+    },
+    {
+      "from": 46,
+      "to": 50,
+      "weight": 46.69
+    },
+    {
+      "from": 51,
+      "to": 48,
+      "weight": 46.17
+    },
+    {
+      "from": 51,
+      "to": 15,
+      "weight": 41.36
+    },
+    {
+      "from": 50,
+      "to": 15,
+      "weight": 46.22
+    },
+    {
+      "from": 53,
+      "to": 52,
+      "weight": 40
+    },
+    {
+      "from": 56,
+      "to": 55,
+      "weight": 36.67
+    },
+    {
+      "from": 54,
+      "to": 55,
+      "weight": 48.27
+    },
+    {
+      "from": 54,
+      "to": 56,
+      "weight": 47.17
+    },
+    {
+      "from": 54,
+      "to": 52,
+      "weight": 49.65
+    },
+    {
+      "from": 56,
+      "to": 52,
+      "weight": 53.67
+    },
+    {
+      "from": 57,
+      "to": 56,
+      "weight": 53.29
+    },
+    {
+      "from": 57,
+      "to": 53,
+      "weight": 27.57
+    },
+    {
+      "from": 58,
+      "to": 54,
+      "weight": 30.74
+    },
+    {
+      "from": 59,
+      "to": 58,
+      "weight": 44.78
+    },
+    {
+      "from": 69,
+      "to": 59,
+      "weight": 51
+    },
+    {
+      "from": 70,
+      "to": 59,
+      "weight": 32.02
+    },
+    {
+      "from": 70,
+      "to": 64,
+      "weight": 56.22
+    },
+    {
+      "from": 64,
+      "to": 63,
+      "weight": 57.14
+    },
+    {
+      "from": 64,
+      "to": 62,
+      "weight": 63.13
+    },
+    {
+      "from": 60,
+      "to": 64,
+      "weight": 32.25
+    },
+    {
+      "from": 62,
+      "to": 61,
+      "weight": 27.89
+    },
+    {
+      "from": 73,
+      "to": 63,
+      "weight": 51.21
+    },
+    {
+      "from": 69,
+      "to": 73,
+      "weight": 50.56
+    },
+    {
+      "from": 76,
+      "to": 62,
+      "weight": 50.32
+    },
+    {
+      "from": 72,
+      "to": 71,
+      "weight": 50.72
+    },
+    {
+      "from": 82,
+      "to": 80,
+      "weight": 53
+    },
+    {
+      "from": 82,
+      "to": 75,
+      "weight": 78.62
+    },
+    {
+      "from": 82,
+      "to": 62,
+      "weight": 34.36
+    },
+    {
+      "from": 78,
+      "to": 82,
+      "weight": 61.71
+    },
+    {
+      "from": 82,
+      "to": 71,
+      "weight": 72.25
+    },
+    {
+      "from": 83,
+      "to": 72,
+      "weight": 42.43
+    },
+    {
+      "from": 84,
+      "to": 83,
+      "weight": 106.3
+    },
+    {
+      "from": 81,
+      "to": 84,
+      "weight": 87.27
+    },
+    {
+      "from": 87,
+      "to": 86,
+      "weight": 23.71
+    },
+    {
+      "from": 85,
+      "to": 87,
+      "weight": 37.58
+    },
+    {
+      "from": 85,
+      "to": 86,
+      "weight": 45.28
+    },
+    {
+      "from": 86,
+      "to": 49,
+      "weight": 64.15
+    },
+    {
+      "from": 85,
+      "to": 49,
+      "weight": 33.28
+    },
+    {
+      "from": 85,
+      "to": 66,
+      "weight": 59.11
+    },
+    {
+      "from": 46,
+      "to": 88,
+      "weight": 38.82
+    },
+    {
+      "from": 58,
+      "to": 88,
+      "weight": 40.85
+    },
+    {
+      "from": 88,
+      "to": 67,
+      "weight": 39.27
+    },
+    {
+      "from": 66,
+      "to": 88,
+      "weight": 50.74
+    },
+    {
+      "from": 66,
+      "to": 58,
+      "weight": 44.28
+    },
+    {
+      "from": 40,
+      "to": 89,
+      "weight": 61.76
+    },
+    {
+      "from": 89,
+      "to": 7,
+      "weight": 39.23
+    },
+    {
+      "from": 18,
+      "to": 39,
+      "weight": 79.28
+    },
+    {
+      "from": 51,
+      "to": 90,
+      "weight": 30.34
+    },
+    {
+      "from": 90,
+      "to": 39,
+      "weight": 42.94
+    },
+    {
+      "from": 37,
+      "to": 42,
+      "weight": 38.91
+    },
+    {
+      "from": 36,
+      "to": 91,
+      "weight": 38.83
+    },
+    {
+      "from": 92,
+      "to": 91,
+      "weight": 57.56
+    },
+    {
+      "from": 91,
+      "to": 93,
+      "weight": 61.4
+    },
+    {
+      "from": 94,
+      "to": 91,
+      "weight": 89.38
+    },
+    {
+      "from": 94,
+      "to": 95,
+      "weight": 74.33
+    },
+    {
+      "from": 96,
+      "to": 95,
+      "weight": 28.02
+    },
+    {
+      "from": 96,
+      "to": 94,
+      "weight": 83.35
+    },
+    {
+      "from": 97,
+      "to": 96,
+      "weight": 26.93
+    },
+    {
+      "from": 91,
+      "to": 48,
+      "weight": 75.17
+    },
+    {
+      "from": 98,
+      "to": 93,
+      "weight": 46.46
+    },
+    {
+      "from": 87,
+      "to": 99,
+      "weight": 41.59
+    },
+    {
+      "from": 97,
+      "to": 99,
+      "weight": 23
+    },
+    {
+      "from": 101,
+      "to": 65,
+      "weight": 92.78
+    },
+    {
+      "from": 100,
+      "to": 99,
+      "weight": 59.68
+    },
+    {
+      "from": 70,
+      "to": 100,
+      "weight": 43.74
+    },
+    {
+      "from": 102,
+      "to": 99,
+      "weight": 51.32
+    },
+    {
+      "from": 103,
+      "to": 102,
+      "weight": 16
+    },
+    {
+      "from": 104,
+      "to": 71,
+      "weight": 71.33
+    },
+    {
+      "from": 104,
+      "to": 75,
+      "weight": 54.27
+    },
+    {
+      "from": 74,
+      "to": 75,
+      "weight": 40.01
+    },
+    {
+      "from": 73,
+      "to": 74,
+      "weight": 32.76
+    },
+    {
+      "from": 103,
+      "to": 105,
+      "weight": 66.56
+    },
+    {
+      "from": 111,
+      "to": 94,
+      "weight": 71
+    },
+    {
+      "from": 111,
+      "to": 92,
+      "weight": 48.48
+    },
+    {
+      "from": 33,
+      "to": 111,
+      "weight": 81.66
+    },
+    {
+      "from": 109,
+      "to": 111,
+      "weight": 27.46
+    },
+    {
+      "from": 110,
+      "to": 109,
+      "weight": 20.02
+    },
+    {
+      "from": 113,
+      "to": 112,
+      "weight": 30.41
+    },
+    {
+      "from": 109,
+      "to": 112,
+      "weight": 89.19
+    },
+    {
+      "from": 108,
+      "to": 110,
+      "weight": 131.64
+    },
+    {
+      "from": 114,
+      "to": 115,
+      "weight": 29.07
+    },
+    {
+      "from": 115,
+      "to": 110,
+      "weight": 64.54
+    },
+    {
+      "from": 115,
+      "to": 103,
+      "weight": 59.13
+    },
+    {
+      "from": 117,
+      "to": 116,
+      "weight": 21.4
+    },
+    {
+      "from": 116,
+      "to": 108,
+      "weight": 51.43
+    },
+    {
+      "from": 118,
+      "to": 108,
+      "weight": 89.05
+    },
+    {
+      "from": 119,
+      "to": 105,
+      "weight": 34.13
+    },
+    {
+      "from": 108,
+      "to": 119,
+      "weight": 62.51
+    },
+    {
+      "from": 120,
+      "to": 119,
+      "weight": 67.27
+    },
+    {
+      "from": 119,
+      "to": 121,
+      "weight": 36.12
+    },
+    {
+      "from": 121,
+      "to": 103,
+      "weight": 78.48
+    },
+    {
+      "from": 81,
+      "to": 121,
+      "weight": 63.92
+    },
+    {
+      "from": 122,
+      "to": 81,
+      "weight": 31
+    },
+    {
+      "from": 122,
+      "to": 80,
+      "weight": 31.29
+    },
+    {
+      "from": 77,
+      "to": 122,
+      "weight": 31.3
+    },
+    {
+      "from": 122,
+      "to": 123,
+      "weight": 48.35
+    },
+    {
+      "from": 14,
+      "to": 13,
+      "weight": 57.04
+    },
+    {
+      "from": 99,
+      "to": 98,
+      "weight": 67.27
+    },
+    {
+      "from": 48,
+      "to": 98,
+      "weight": 48.61
+    },
+    {
+      "from": 8,
+      "to": 12,
+      "weight": 34.54
+    },
+    {
+      "from": 124,
+      "to": 12,
+      "weight": 26.91
+    },
+    {
+      "from": 48,
+      "to": 125,
+      "weight": 54.95
+    },
+    {
+      "from": 36,
+      "to": 125,
+      "weight": 25.63
+    },
+    {
+      "from": 37,
+      "to": 125,
+      "weight": 37.18
+    },
+    {
+      "from": 42,
+      "to": 125,
+      "weight": 54.79
+    },
+    {
+      "from": 125,
+      "to": 126,
+      "weight": 30
+    },
+    {
+      "from": 93,
+      "to": 95,
+      "weight": 23.09
+    },
+    {
+      "from": 127,
+      "to": 128,
+      "weight": 40.5
+    },
+    {
+      "from": 74,
+      "to": 127,
+      "weight": 53.56
+    },
+    {
+      "from": 57,
+      "to": 128,
+      "weight": 62.71
+    },
+    {
+      "from": 127,
+      "to": 130,
+      "weight": 74.71
+    },
+    {
+      "from": 130,
+      "to": 129,
+      "weight": 27.2
+    },
+    {
+      "from": 133,
+      "to": 132,
+      "weight": 20.25
+    },
+    {
+      "from": 133,
+      "to": 131,
+      "weight": 21.03
+    },
+    {
+      "from": 130,
+      "to": 133,
+      "weight": 128.57
+    },
+    {
+      "from": 101,
+      "to": 102,
+      "weight": 51.19
+    },
+    {
+      "from": 100,
+      "to": 65,
+      "weight": 26.43
+    },
+    {
+      "from": 101,
+      "to": 77,
+      "weight": 59.39
+    }
+  ]
+}
