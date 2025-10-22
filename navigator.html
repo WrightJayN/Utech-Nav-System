@@ -1570,6 +1570,14 @@
             }
         });
         
+        resultsFrom.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+        });
+        
+        resultsTo.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+        });
+
         // --- EXISTING PAN/ZOOM LOGIC (Unchanged) ---
         mapContainer.addEventListener('mousedown', (e) => {
             e.preventDefault();
