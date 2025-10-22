@@ -546,7 +546,12 @@
         let selectedToNode = null;
         let isDraggingText = false; 
         let currentlySelectedNode = null; // Track the node currently displayed in the info box
-        let nodesVisible = false; // Initial state for node visibility toggle
+        
+        // --- NEW: Graph & Pathfinding Variables ---
+        let adjacencyList = {}; // Our graph data structure
+        let nodeMap = {}; // For quick lookup of node data by ID
+        let pathSvg = null; // The SVG element for drawing lines
+        let currentPath = []; // Stores the last valid path for resizing
 
         const P1_GEO = { lat: 18.015941, lon: -76.744185 }; 
         const P1_PIXEL = { x: 1283, y: 3090 }; 
@@ -800,10 +805,15 @@
             Promise.all([imageLoadPromise, jsonFetchPromise])
                 .then(() => {
                     console.log('Image and JSON loaded successfully. Rendering nodes.');
+                    
+                    buildGraphDataStructures(); // <--- ADDED
+                    
                     setTransform(0, 0, 1); 
                     targetView = { x: view.x, y: view.y }; 
                     targetScale = 1; // Initialize target scale
                     renderNodes(); 
+                    
+                    createPathSvgOverlay(); // <--- ADDED
                     
                     const initialLat = 18.0165;
                     const initialLon = -76.7440;
@@ -878,6 +888,13 @@
                  mapContainer.style.width = mapImage.offsetWidth + 'px';
                  resetTransform(); 
                  renderNodes();
+
+                 // --- ADDED ---
+                 if (currentPath.length > 0) {
+                     drawPath(currentPath);
+                 }
+                 // --- END ADDED ---
+
                  if (currentUserLocation) {
                     updateUserLocation(currentUserLocation.lat, currentUserLocation.lon);
                  }
@@ -1052,10 +1069,12 @@
             // NEW: Hide the clear route button and show the search button
             document.body.removeAttribute('data-route-active');
 
-            // Restore global visibility state (if nodes were visible before route search)
-            if (nodesVisible) {
-                 document.querySelectorAll('.node, .node-label').forEach(el => el.classList.add('global-visible'));
+            // --- ADDED ---
+            currentPath = [];
+            if (pathSvg) {
+                pathSvg.innerHTML = '';
             }
+            // --- END ADDED ---
         }
         
         closeInfoBtn.addEventListener('click', clearNodeSelection);
@@ -1169,6 +1188,150 @@
             return closestNodeOnCampus; 
         }
 
+        // --- NEW: Graph & Pathfinding Functions ---
+
+        /**
+         * Creates the graph data structures (adjacency list and node map)
+         * from the loaded nodesData.
+         */
+        function buildGraphDataStructures() {
+            nodeMap = {};
+            adjacencyList = {};
+
+            // Create a map for quick node lookups by ID
+            // and initialize the adjacency list
+            nodesData.nodes.forEach(node => {
+                nodeMap[node.id] = node;
+                adjacencyList[node.id] = [];
+            });
+
+            // Populate the adjacency list.
+            // We assume an undirected graph, so add edges in both directions.
+            nodesData.edges.forEach(edge => {
+                adjacencyList[edge.from].push(edge.to);
+                adjacencyList[edge.to].push(edge.from);
+            });
+            console.log("Graph data structures built.");
+        }
+
+        /**
+         * Creates an SVG overlay inside the transformWrapper to draw paths on.
+         */
+        function createPathSvgOverlay() {
+            if (document.getElementById('path-svg')) return; // Already created
+
+            pathSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            pathSvg.id = 'path-svg';
+            pathSvg.style.position = 'absolute';
+            pathSvg.style.top = '0';
+            pathSvg.style.left = '0';
+            pathSvg.style.width = '100%'; // Will match the image width
+            pathSvg.style.height = '100%'; // Will match the image height
+            pathSvg.style.pointerEvents = 'none'; // CRITICAL: allows clicks to pass through
+            pathSvg.style.zIndex = '5'; // Above image, below nodes
+            
+            // Prepend it so nodes are drawn on top
+            transformWrapper.prepend(pathSvg); 
+            console.log("SVG overlay created.");
+        }
+
+        /**
+         * Implements the Breadth-First Search (BFS) algorithm to find the shortest path.
+         * @param {number} startId - The ID of the starting node.
+         * @param {number} endId - The ID of the destination node.
+         * @returns {number[] | null} An array of node IDs representing the path, or null if no path is found.
+         */
+        function findPathBFS(startId, endId) {
+            const queue = [startId];
+            const visited = new Set();
+            visited.add(startId);
+            
+            // parentMap stores { childId: parentId } to reconstruct the path
+            const parentMap = {};
+            parentMap[startId] = null;
+
+            let pathFound = false;
+
+            while (queue.length > 0) {
+                const currentId = queue.shift();
+
+                if (currentId === endId) {
+                    pathFound = true;
+                    break;
+                }
+
+                const neighbors = adjacencyList[currentId];
+                if (neighbors) {
+                    for (const neighborId of neighbors) {
+                        if (!visited.has(neighborId)) {
+                            visited.add(neighborId);
+                            parentMap[neighborId] = currentId;
+                            queue.push(neighborId);
+                        }
+                    }
+                }
+            }
+
+            if (!pathFound) {
+                return null; // No path
+            }
+
+            // Reconstruct path by backtracking from the end node
+            const path = [];
+            let current = endId;
+            while (current !== null) {
+                path.unshift(current); // Add to the front
+                current = parentMap[current];
+            }
+            
+            return (path[0] === startId) ? path : null;
+        }
+
+        /**
+         * Draws the given path on the SVG overlay.
+         * @param {number[]} pathNodeIds - An array of node IDs.
+         */
+        function drawPath(pathNodeIds) {
+            if (!pathSvg || !originalImageWidth || pathNodeIds.length < 2) {
+                return;
+            }
+
+            pathSvg.innerHTML = ''; // Clear previous path
+            
+            // Get current dimensions and ratios
+            const currentImageWidth = mapImage.offsetWidth;
+            const currentImageHeight = mapImage.offsetHeight;
+            const widthRatio = currentImageWidth / originalImageWidth;
+            const heightRatio = currentImageHeight / originalImageHeight;
+
+            for (let i = 0; i < pathNodeIds.length - 1; i++) {
+                const nodeA = nodeMap[pathNodeIds[i]];
+                const nodeB = nodeMap[pathNodeIds[i+1]];
+
+                if (!nodeA || !nodeB) continue; // Safety check
+
+                // Calculate scaled coordinates just like the nodes
+                const x1 = (nodeA.x * NODE_SCALE_FACTOR) * widthRatio;
+                const y1 = (nodeA.y * NODE_SCALE_FACTOR) * heightRatio;
+                const x2 = (nodeB.x * NODE_SCALE_FACTOR) * widthRatio;
+                const y2 = (nodeB.y * NODE_SCALE_FACTOR) * heightRatio;
+
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('stroke', 'yellow');
+                line.setAttribute('stroke-width', '5'); // Make it thick and visible
+                line.setAttribute('stroke-linecap', 'round');
+                // Add a shadow for better visibility on light parts of the map
+                line.style.filter = 'drop-shadow(0 0 3px rgba(0,0,0,0.8))'; 
+
+                pathSvg.appendChild(line);
+            }
+        }
+
+
         function openModal(destinationNode = null) {
             routeModal.style.display = 'flex';
             setTimeout(() => {
@@ -1187,6 +1350,7 @@
             toError.style.display = 'none';
             
             // Clear all highlights when opening the modal
+            // We call the full clear function because opening the modal should always reset the map view
             clearNodeSelection();
             
             // Set Default 'From' Location (User Location Logic)
@@ -1261,7 +1425,7 @@
             isDraggingText = false;
         });
 
-        // --- MODIFIED: handleRouteSearch to apply Dijkstra's and display path/nodes ---
+        // --- MODIFIED: handleRouteSearch to find and draw path ---
         function handleRouteSearch() {
             let isValid = true;
             fromError.style.display = 'none';
@@ -1271,11 +1435,6 @@
             const normalizedToInput = normalizeInput(toInput.value);
             const selectedFromName = selectedFromNode ? selectedFromNode.name.toLowerCase().trim() : '';
             const selectedToName = selectedToNode ? selectedToNode.name.toLowerCase().trim() : '';
-            
-            // Clear all previous highlights before validation
-            document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
-            document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
-
 
             if (!selectedFromNode || normalizedFromInput !== selectedFromName) {
                 fromError.innerText = 'Please select a valid starting location from the list.';
@@ -1298,56 +1457,45 @@
             if (isValid) {
                 console.log(`Starting route search from ${selectedFromNode.name} (ID: ${selectedFromNode.id}) to ${selectedToNode.name} (ID: ${selectedToNode.id}).`);
                 
-                // --- 1. RUN DIJKSTRA'S ---
-                const shortestPath = dijkstra(selectedFromNode.id, selectedToNode.id);
+                // --- 1. PERFORM PATHFINDING ---
+                const path = findPathBFS(selectedFromNode.id, selectedToNode.id);
+
+                if (!path) {
+                    console.error("No path found between nodes.");
+                    currentPath = []; // Clear any old path
+                    if (pathSvg) pathSvg.innerHTML = ''; // Clear lines
+                    // Show error in modal instead of alert
+                    toError.innerText = 'A path could not be found to that location.';
+                    toError.style.display = 'block';
+                    return; // Stop, leave modal open
+                }
+
+                console.log("Path found:", path);
+                currentPath = path; // Save for resizing
+                drawPath(currentPath); // Draw yellow lines
+
+                // --- 2. APPLY PERSISTENT VISIBILITY (Red Circles) ---
                 
-                if (!shortestPath) {
-                    alert("Route not found. The selected locations may not be connected.");
-                    console.warn("No path found between the selected nodes.");
-                    
-                    // Show points but don't draw path or proceed to map view change
-                    if(document.body.hasAttribute('data-route-active')) {
-                        clearNodeSelection();
+                // Clear all previous single-node highlights
+                // Note: We call openModal() *before* this, which already calls clearNodeSelection()
+                // So the path is clear for us to draw on.
+                
+                // Highlight all nodes in the path
+                path.forEach(nodeId => {
+                    const nodeEl = document.querySelector(`.node[data-id="${nodeId}"]`);
+                    const labelEl = document.querySelector(`.node-label[data-id="${nodeId}"]`);
+
+                    if (nodeEl) {
+                        nodeEl.classList.add('selected', 'route-node-visible');
                     }
                     
-                    document.body.setAttribute('data-route-active', 'true');
-                    closeModal();
-                    return;
-                }
-                
-                // Ensure temporary node selections are cleared before path drawing
-                document.querySelectorAll('.node.selected, .node.from-highlight, .node.path-intermediate, .node.path-start, .node.path-end').forEach(el => el.classList.remove('selected', 'from-highlight', 'path-intermediate', 'path-start', 'path-end'));
-
-                // --- 2. DRAW PATH AND HIGHLIGHT NODES ---
-                
-                drawPath(shortestPath);
-                
-                const pathStartId = shortestPath[0];
-                const pathEndId = shortestPath[shortestPath.length - 1];
-
-                for(let i = 0; i < shortestPath.length; i++) {
-                    const nodeId = shortestPath[i];
-                    const nodeElement = document.querySelector(`.node[data-id="${nodeId}"]`);
-                    const labelElement = document.querySelector(`.node-label[data-id="${nodeId}"]`);
-                    
-                    if (nodeElement) {
-                        nodeElement.classList.add('route-node-visible');
-                        
-                        // Set colors based on position in path
-                        if (nodeId === pathStartId) {
-                            nodeElement.classList.add('path-start');
-                        } else if (nodeId === pathEndId) {
-                            nodeElement.classList.add('path-end');
-                            // Only show label for the destination node
-                            if (labelElement) labelElement.classList.add('selected');
-                        } else {
-                            nodeElement.classList.add('path-intermediate');
-                        }
+                    // Only show the label for the *final* destination
+                    if (labelEl && nodeId === selectedToNode.id) {
+                         labelEl.classList.add('selected', 'route-node-visible'); 
                     }
-                }
+                });
                 
-                // --- 3. ZOOM OUT AND CENTER ---
-                
+                // --- 3. ZOOM OUT AND CENTER (Reset Zoom to 1.0) ---
                 const currentImageWidth = mapImage.offsetWidth;
                 const currentImageHeight = mapImage.offsetHeight;
                 const widthRatio = currentImageWidth / originalImageWidth;
@@ -1362,7 +1510,6 @@
                 const midX = (nodeX1 + nodeX2) / 2;
                 const midY = (nodeY1 + nodeY2) / 2;
 
-                // Reset zoom fully to 1.0
                 const zoomScale = 1.0; 
 
                 // Calculate view center based on midpoint and zoom level
@@ -1444,21 +1591,20 @@
         
         // --- FIX: Prevent accidental modal close on autocomplete item click ---
         fromInput.addEventListener('blur', () => {
-            // Check if the related target (where focus is moving) is within the results container
-            if (!resultsFrom.contains(document.activeElement)) {
-                setTimeout(() => {
-                    resultsFrom.style.display = 'none';
-                }, 100);
-            }
+            // Use a simple timeout to hide the results.
+            // This delay allows the 'click' event on a result item to fire
+            // before the list is hidden, preventing a race condition where
+            // the click registers on the modal overlay instead.
+            setTimeout(() => {
+                resultsFrom.style.display = 'none';
+            }, 150); // Increased timeout to 150ms to be safe
         });
         
         toInput.addEventListener('blur', () => {
-             // Check if the related target (where focus is moving) is within the results container
-             if (!resultsTo.contains(document.activeElement)) {
-                setTimeout(() => {
-                    resultsTo.style.display = 'none';
-                }, 100);
-            }
+             // Use a simple timeout to hide the results.
+            setTimeout(() => {
+                resultsTo.style.display = 'none';
+            }, 150); // Increased timeout to 150ms to be safe
         });
 
         fromInput.addEventListener('focus', () => {
@@ -1472,6 +1618,14 @@
             }
         });
         
+        resultsFrom.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+        });
+        
+        resultsTo.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+        });
+
         // --- EXISTING PAN/ZOOM LOGIC (Unchanged) ---
         mapContainer.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -1640,3 +1794,5 @@
         });
 
     </script>
+</body>
+</html>
