@@ -1371,21 +1371,20 @@
         
         // --- FIX: Prevent accidental modal close on autocomplete item click ---
         fromInput.addEventListener('blur', () => {
-            // Check if the related target (where focus is moving) is within the results container
-            if (!resultsFrom.contains(document.activeElement)) {
-                setTimeout(() => {
-                    resultsFrom.style.display = 'none';
-                }, 100);
-            }
+            // Use a simple timeout to hide the results.
+            // This delay allows the 'click' event on a result item to fire
+            // before the list is hidden, preventing a race condition where
+            // the click registers on the modal overlay instead.
+            setTimeout(() => {
+                resultsFrom.style.display = 'none';
+            }, 150); // Increased timeout to 150ms to be safe
         });
         
         toInput.addEventListener('blur', () => {
-             // Check if the related target (where focus is moving) is within the results container
-             if (!resultsTo.contains(document.activeElement)) {
-                setTimeout(() => {
-                    resultsTo.style.display = 'none';
-                }, 100);
-            }
+             // Use a simple timeout to hide the results.
+            setTimeout(() => {
+                resultsTo.style.display = 'none';
+            }, 150); // Increased timeout to 150ms to be safe
         });
 
         fromInput.addEventListener('focus', () => {
@@ -1564,6 +1563,5 @@
                 currentlySelectedNode = null;
                 nodeInfoDisplay.style.display = 'none';
             }
-        });
-
+        });    
     </script>
