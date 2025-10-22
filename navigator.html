@@ -784,7 +784,7 @@
                 .then(() => {
                     console.log('Image and JSON loaded successfully. Rendering nodes.');
                     
-                    buildGraphDataStructures(); // <--- ADDED
+                    buildGraphDataStructures(); // <--- UPDATED
                     
                     setTransform(0, 0, 1); 
                     targetView = { x: view.x, y: view.y }; 
@@ -1143,7 +1143,7 @@
 
         /**
          * Creates the graph data structures (adjacency list and node map)
-         * from the loaded nodesData.
+         * from the loaded nodesData, now including edge weights.
          */
         function buildGraphDataStructures() {
             nodeMap = {};
@@ -1159,10 +1159,12 @@
             // Populate the adjacency list.
             // We assume an undirected graph, so add edges in both directions.
             nodesData.edges.forEach(edge => {
-                adjacencyList[edge.from].push(edge.to);
-                adjacencyList[edge.to].push(edge.from);
+                // Add edge from 'from' to 'to' with weight
+                adjacencyList[edge.from].push({ node: edge.to, weight: edge.weight });
+                // Add edge from 'to' to 'from' with weight
+                adjacencyList[edge.to].push({ node: edge.from, weight: edge.weight });
             });
-            console.log("Graph data structures built.");
+            console.log("Graph data structures built (with weights).");
         }
 
         /**
@@ -1187,25 +1189,44 @@
         }
 
         /**
-         * Implements the Breadth-First Search (BFS) algorithm to find the shortest path.
+         * Implements Dijkstra's algorithm to find the shortest path using edge weights.
          * @param {number} startId - The ID of the starting node.
          * @param {number} endId - The ID of the destination node.
          * @returns {number[] | null} An array of node IDs representing the path, or null if no path is found.
          */
-        function findPathBFS(startId, endId) {
-            const queue = [startId];
-            const visited = new Set();
-            visited.add(startId);
+        function findPathDijkstra(startId, endId) {
+            // A simple Priority Queue implementation using an array
+            // Stores { id, distance }
+            let queue = [];
+            queue.push({ id: startId, distance: 0 });
+
+            // distances map: { nodeId: shortestDistance }
+            let distances = {};
+            // parentMap: { childId: parentId }
+            let parentMap = {};
             
-            // parentMap stores { childId: parentId } to reconstruct the path
-            const parentMap = {};
-            parentMap[startId] = null;
+            // Initialize distances for all nodes
+            nodesData.nodes.forEach(node => {
+                distances[node.id] = Infinity;
+                parentMap[node.id] = null;
+            });
+            
+            // The distance to the start node is 0
+            distances[startId] = 0;
 
             let pathFound = false;
 
             while (queue.length > 0) {
-                const currentId = queue.shift();
+                // Sort queue to get the node with the smallest distance (this is the "priority")
+                queue.sort((a, b) => a.distance - b.distance);
+                const { id: currentId, distance: currentDistance } = queue.shift();
 
+                // If this node's distance is already greater than a known shorter path, skip it
+                if (currentDistance > distances[currentId]) {
+                    continue;
+                }
+                
+                // If we reached the end, we're done
                 if (currentId === endId) {
                     pathFound = true;
                     break;
@@ -1213,11 +1234,20 @@
 
                 const neighbors = adjacencyList[currentId];
                 if (neighbors) {
-                    for (const neighborId of neighbors) {
-                        if (!visited.has(neighborId)) {
-                            visited.add(neighborId);
+                    // Check all neighbors of the current node
+                    for (const neighbor of neighbors) {
+                        const neighborId = neighbor.node;
+                        const weight = neighbor.weight;
+                        
+                        // The new distance to this neighbor is our current path's cost + the edge weight
+                        const newDistance = currentDistance + weight;
+
+                        // If we found a shorter path to this neighbor...
+                        if (newDistance < distances[neighborId]) {
+                            // ...update its distance, set its parent, and add it to the queue
+                            distances[neighborId] = newDistance;
                             parentMap[neighborId] = currentId;
-                            queue.push(neighborId);
+                            queue.push({ id: neighborId, distance: newDistance });
                         }
                     }
                 }
@@ -1409,7 +1439,7 @@
                 console.log(`Starting route search from ${selectedFromNode.name} (ID: ${selectedFromNode.id}) to ${selectedToNode.name} (ID: ${selectedToNode.id}).`);
                 
                 // --- 1. PERFORM PATHFINDING ---
-                const path = findPathBFS(selectedFromNode.id, selectedToNode.id);
+                const path = findPathDijkstra(selectedFromNode.id, selectedToNode.id);
 
                 if (!path) {
                     console.error("No path found between nodes.");
@@ -1426,10 +1456,6 @@
                 drawPath(currentPath); // Draw yellow lines
 
                 // --- 2. APPLY PERSISTENT VISIBILITY (Red Circles) ---
-                
-                // Clear all previous single-node highlights
-                // Note: We call openModal() *before* this, which already calls clearNodeSelection()
-                // So the path is clear for us to draw on.
                 
                 // Highlight all nodes in the path
                 path.forEach(nodeId => {
@@ -1569,7 +1595,12 @@
                 handleAutocomplete(toInput, resultsTo, false);
             }
         });
-        
+
+        // --- NEW FIX: Prevent blur when clicking on the results list ---
+        // This stops the race condition. By preventing the default mousedown
+        // behavior on the results list, we stop the input field from
+        // firing its 'blur' event. This ensures the list doesn't disappear
+        // while the user is clicking an item or its scrollbar.
         resultsFrom.addEventListener('mousedown', (e) => {
             e.preventDefault();
         });
@@ -1577,7 +1608,7 @@
         resultsTo.addEventListener('mousedown', (e) => {
             e.preventDefault();
         });
-
+        
         // --- EXISTING PAN/ZOOM LOGIC (Unchanged) ---
         mapContainer.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -1657,7 +1688,7 @@
         window.addEventListener('touchmove', (e) => {
             e.preventDefault();
             if (panning && e.touches.length === 1) {
-                isAnimatingPan = false; 
+                isAnimatingPan.false; 
                 wasPanning = true; 
                 let newX = e.touches[0].clientX - start.x;
                 let newY = e.touches[0].clientY - start.y;
