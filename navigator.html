@@ -5,7 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Map Navigator</title>
     <style>
-        /* ... (CSS is unchanged - root, body, map-container, transform-wrapper, map-image, node, node-label, user-location-marker) ... */
+        /* --- NEW CSS STYLE INJECTION FOR FROM-HIGHLIGHT --- */
+        .node.from-highlight {
+            background-color: #007bff; /* Blue */
+            border: 2px solid #0056b3; /* Darker Blue Border */
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.8);
+            width: 12px;
+            height: 12px;
+            z-index: 15; /* Above default nodes */
+        }
+        /* --- EXISTING CSS STYLES --- */
         :root {
             --bg-color: #f7f9fa;
             --surface-color: #ffffff;
@@ -18,7 +27,7 @@
             --node-red: red;
             --node-darkred: darkred;
             --user-marker-color: #007aff;
-            --primary-color: #007aff; /* New variable for button color */
+            --primary-color: #007aff; 
             --primary-hover-color: #0056b3;
         }
         body[data-theme="dark"] {
@@ -135,19 +144,19 @@
         body[data-theme="dark"] .user-location-marker {
             filter: invert(1) hue-rotate(180deg); 
         }
-        
-        /* --- NEW/MODIFIED CSS FOR SEARCH BUTTON AND MODAL --- */
+        /* MODIFIED SEARCH CONTAINER AND BUTTON STYLES */
         #search-container {
             position: absolute;
             top: 15px;
             left: 15px;
             z-index: 30;
-            width: calc(100% - 30px); 
+            width: auto; /* Allow button to size content */
             max-width: 360px;
         }
 
         #search-button {
-            padding: 14px 20px;
+            padding: 8px 12px; /* Matches #get-directions-btn padding */
+            height: 44px; /* Matches theme toggle/center button height for visual consistency */
             font-size: 16px;
             border: none;
             border-radius: 8px;
@@ -155,10 +164,14 @@
             background-color: var(--primary-color);
             color: var(--surface-color); 
             cursor: pointer;
-            width: 100%;
+            width: auto; /* Let content size the button */
+            min-width: 150px; /* Ensure button isn't too small */
             font-weight: 600;
             transition: background-color 0.2s ease, box-shadow 0.2s ease;
             outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         #search-button:hover {
             background-color: var(--primary-hover-color);
@@ -167,6 +180,7 @@
             box-shadow: 0 4px 12px var(--shadow-color), 0 0 0 3px var(--focus-ring-color);
         }
         
+        /* Modal remains the same */
         #route-modal {
             position: fixed;
             top: 0;
@@ -264,8 +278,6 @@
             background-color: var(--primary-hover-color);
         }
 
-        /* The following existing CSS styles are no longer needed for the single search bar, but I'll keep them 
-           as they were intended for the original search-related elements. I'll repurpose the 'search-results' styles for autocomplete. */
         #autocomplete-results-from, #autocomplete-results-to {
             background-color: var(--surface-color); 
             border: none;
@@ -297,7 +309,6 @@
             border-bottom: none;
         }
         
-        /* New error message style */
         .error-message {
             color: red;
             font-size: 12px;
@@ -305,6 +316,60 @@
             display: none;
         }
 
+        /* --- NEW: NODE INFO DISPLAY BOX --- */
+        #node-info-display {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 30;
+            display: none; /* Initially hidden */
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            padding: 10px;
+            max-width: 360px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 44px; /* Match the height of the Search button */
+            box-sizing: border-box; /* Include padding in height calculation */
+        }
+        #node-name {
+            flex-grow: 1;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #get-directions-btn, #close-info-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-weight: 500;
+            outline: none;
+            /* Ensure the Directions button height matches Search button height */
+            height: 100%; 
+        }
+        #get-directions-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        #get-directions-btn:hover {
+            background-color: var(--primary-hover-color);
+        }
+        #close-info-btn {
+            background-color: var(--bg-color);
+            color: var(--icon-color);
+        }
+        #close-info-btn:hover {
+            background-color: var(--border-color);
+        }
+        
         /* --- Existing CSS (Theme Toggle, Location Controls, Center Button) --- */
         #theme-toggle {
             position: absolute;
@@ -337,7 +402,7 @@
         }
         #location-controls {
             position: absolute;
-            top: 74px; /* Under the theme toggle */
+            top: 74px; 
             right: 15px;
             z-index: 30;
             background-color: var(--surface-color);
@@ -402,6 +467,12 @@
     <div id="search-container">
         <button id="search-button">Search for Route</button>
     </div>
+
+    <div id="node-info-display">
+        <span id="node-name"></span>
+        <button id="get-directions-btn">Get Directions</button>
+        <button id="close-info-btn">Close</button>
+    </div>
     
     <div id="route-modal">
         <div id="modal-content">
@@ -460,6 +531,20 @@
 
 
     <script>
+        // --- MODIFIED CSS INJECTION: Add new blue highlight style ---
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .node.from-highlight {
+                background-color: #007bff; /* Blue */
+                border: 2px solid #0056b3; /* Darker Blue Border */
+                box-shadow: 0 0 8px rgba(0, 123, 255, 0.8);
+                width: 12px;
+                height: 12px;
+                z-index: 15; /* Above default nodes */
+            }
+        `;
+        document.head.appendChild(style);
+
         // --- EXISTING CONSTANTS ---
         const mapImage = document.getElementById('map-image');
         const mapContainer = document.getElementById('map-container');
@@ -472,7 +557,7 @@
         const coordsDisplay = document.getElementById('coords-display');
         const centerUserBtn = document.getElementById('center-user-btn');
 
-        // --- NEW CONSTANTS FOR MODAL & ROUTE SEARCH ---
+        // --- NEW CONSTANTS FOR MODAL & NODE INFO ---
         const searchButton = document.getElementById('search-button');
         const routeModal = document.getElementById('route-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
@@ -483,7 +568,14 @@
         const resultsTo = document.getElementById('autocomplete-results-to');
         const fromError = document.getElementById('from-error');
         const toError = document.getElementById('to-error');
-        const modalContent = document.getElementById('modal-content'); // Used for drag fix
+        const modalContent = document.getElementById('modal-content'); 
+        
+        // New Node Info Display elements
+        const nodeInfoDisplay = document.getElementById('node-info-display');
+        const nodeNameDisplay = document.getElementById('node-name');
+        const getDirectionsBtn = document.getElementById('get-directions-btn');
+        const closeInfoBtn = document.getElementById('close-info-btn');
+
 
         // --- EXISTING VARIABLES ---
         let nodesData = { nodes: [], edges: [] };
@@ -502,11 +594,13 @@
         
         let isAnimatingPan = false;
         let targetView = { x: 0, y: 0 };
+        let targetScale = 1;
         
         // --- NEW VARIABLES FOR ROUTE STATE ---
         let selectedFromNode = null;
         let selectedToNode = null;
-        let isDraggingText = false; // Flag to prevent modal close on drag/select
+        let isDraggingText = false; 
+        let currentlySelectedNode = null; // Track the node currently displayed in the info box
 
         const P1_GEO = { lat: 18.015941, lon: -76.744185 }; 
         const P1_PIXEL = { x: 1283, y: 3090 }; 
@@ -523,25 +617,42 @@
             return (1 - amt) * start + amt * end;
         }
 
+        // --- MODIFIED: animationLoop to use 0.03 for slower interpolation ---
         function animationLoop() {
             if (!isAnimatingPan) return; 
-            const newX = lerp(view.x, targetView.x, 0.05);
-            const newY = lerp(view.y, targetView.y, 0.05);
-            setTransform(newX, newY, scale);
+            
+            // DECREASED INTERPOLATION RATE TO 0.03 for a slower animation
+            const INTERPOLATION_RATE = 0.03; 
+            
+            const newX = lerp(view.x, targetView.x, INTERPOLATION_RATE);
+            const newY = lerp(view.y, targetView.y, INTERPOLATION_RATE);
+            
+            // Smoothly interpolate scale
+            const newScale = lerp(scale, targetScale, INTERPOLATION_RATE);
+
+            setTransform(newX, newY, newScale);
+
             const dx = Math.abs(view.x - targetView.x);
             const dy = Math.abs(view.y - targetView.y);
-            if (dx < 0.5 && dy < 0.5) {
-                setTransform(targetView.x, targetView.y, scale); 
+            const ds = Math.abs(scale - targetScale); // Check scale difference
+
+            // Stop if both panning and scaling are near the target
+            if (dx < 0.5 && dy < 0.5 && ds < 0.005) {
+                setTransform(targetView.x, targetView.y, targetScale); 
                 isAnimatingPan = false;
             } else {
                 requestAnimationFrame(animationLoop); 
             }
         }
 
-        function animatePanToTarget(newViewX, newViewY) {
+        function animatePanToTarget(newViewX, newViewY, newScale) {
             isAnimatingPan = false; 
             targetView.x = newViewX;
             targetView.y = newViewY;
+            
+            if (newScale !== undefined) {
+                 targetScale = newScale; 
+            }
             isAnimatingPan = true;
             requestAnimationFrame(animationLoop);
         }
@@ -606,6 +717,7 @@
                     console.log('Image and JSON loaded successfully. Rendering nodes.');
                     setTransform(0, 0, 1); 
                     targetView = { x: view.x, y: view.y }; 
+                    targetScale = 1; // Initialize target scale
                     renderNodes(); 
                     
                     const initialLat = 18.0165;
@@ -775,28 +887,55 @@
             userLocationMarker.style.display = 'block';
         }
         
+        // --- MODIFIED: selectAndCenterOnNode to only set the target scale ---
         function selectAndCenterOnNode(node) {
             if (!node) return;
-            const oldSelectedNode = document.querySelector('.node.selected');
-            const oldSelectedLabel = document.querySelector('.node-label.selected');
-            if (oldSelectedNode) oldSelectedNode.classList.remove('selected');
-            if (oldSelectedLabel) oldSelectedLabel.classList.remove('selected');
+            
+            // Clear any old highlights (selected, from-highlight)
+            document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
+            document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
+            
             const newNodeElement = document.querySelector(`.node[data-id="${node.id}"]`);
             const newLabelElement = document.querySelector(`.node-label[data-id="${node.id}"]`);
+            
+            // Apply new selection highlight
             if (newNodeElement) newNodeElement.classList.add('selected');
             if (newLabelElement) newLabelElement.classList.add('selected');
+            
             console.log(`Selected node: ${node.name} (ID: ${node.id})`);
+            
+            // Update the currently selected node for the info box
+            currentlySelectedNode = node;
+            
             const currentImageWidth = mapImage.offsetWidth;
             const currentImageHeight = mapImage.offsetHeight;
             const widthRatio = currentImageWidth / originalImageWidth;
             const heightRatio = currentImageHeight / originalImageHeight;
             const nodeX = (node.x * NODE_SCALE_FACTOR) * widthRatio;
             const nodeY = (node.y * NODE_SCALE_FACTOR) * heightRatio;
-            const newViewX = (mapContainer.clientWidth / 2) - (nodeX * scale);
-            const newViewY = (mapContainer.clientHeight / 2) - (nodeY * scale);
             
-            animatePanToTarget(newViewX, newViewY); 
+            // Zoom target
+            const zoomScale = 3.0;
+            const newViewX = (mapContainer.clientWidth / 2) - (nodeX * zoomScale);
+            const newViewY = (mapContainer.clientHeight / 2) - (nodeY * zoomScale);
+            
+            // Pass the zoomScale as the targetScale to the animation function
+            animatePanToTarget(newViewX, newViewY, zoomScale); 
+            
+            // Show the info display box
+            nodeNameDisplay.textContent = node.name;
+            nodeInfoDisplay.style.display = 'flex';
         }
+        
+        // Helper to clear the node selection and hide the info box
+        function clearNodeSelection() {
+            document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
+            document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
+            currentlySelectedNode = null;
+            nodeInfoDisplay.style.display = 'none';
+        }
+        
+        closeInfoBtn.addEventListener('click', clearNodeSelection);
 
         function panToLocation(lat, lon) {
             if (originalImageWidth === 0) return; 
@@ -815,6 +954,8 @@
 
         centerUserBtn.addEventListener('click', () => {
             if (currentUserLocation) {
+                // Reset zoom to 1 when centering on user location
+                targetScale = 1; 
                 panToLocation(currentUserLocation.lat, currentUserLocation.lon);
             } else {
                 console.warn("No user location to center on.");
@@ -863,33 +1004,27 @@
 
             const closestNodeOnCampus = getClosestNodeInList(currentUserLocation, nodesData.nodes);
 
-            // Heuristic value for distance (in scaled pixel space) to determine "off campus"
             const ON_CAMPUS_DISTANCE_THRESHOLD_SQ = 30000; 
             let userPixel = convertGeoToPixel(currentUserLocation.lat, currentUserLocation.lon);
             let closestNodeBasePixel = closestNodeOnCampus ? { x: closestNodeOnCampus.x * NODE_SCALE_FACTOR, y: closestNodeOnCampus.y * NODE_SCALE_FACTOR } : null;
             let actualDistanceSq = closestNodeBasePixel ? distanceSq({ x: userPixel.x * NODE_SCALE_FACTOR, y: userPixel.y * NODE_SCALE_FACTOR }, closestNodeBasePixel) : Infinity;
 
             if (actualDistanceSq < ON_CAMPUS_DISTANCE_THRESHOLD_SQ) {
-                // User is close to a node, return the closest one
                 return closestNodeOnCampus;
             } else {
-                // User is off-campus, prioritize Main Entrance or Back Gate
                 const specialNodes = nodesData.nodes.filter(n => 
                     n.name && (n.name.includes("Main Entrance") || n.name.includes("Back Gate"))
                 );
                 
                 if (specialNodes.length > 0) {
-                    // Return the closest special node
                     return getClosestNodeInList(currentUserLocation, specialNodes);
                 }
             }
 
-            // Fallback
             return closestNodeOnCampus; 
         }
 
-        // --- MODIFIED: openModal to include default 'from' location text ---
-        function openModal() {
+        function openModal(destinationNode = null) {
             routeModal.style.display = 'flex';
             setTimeout(() => {
                 routeModal.classList.add('open');
@@ -906,13 +1041,20 @@
             fromError.style.display = 'none';
             toError.style.display = 'none';
             
-            // Set Default 'From' Location
+            // Clear all highlights when opening the modal
+            clearNodeSelection();
+            
+            // Set Default 'From' Location (User Location Logic)
             const defaultFromNode = findClosestNodeToUser();
             if (defaultFromNode) {
                 selectedFromNode = defaultFromNode;
-                // Add the user location tag
                 fromInput.value = defaultFromNode.name + ' (user location)';
-                console.log(`Default 'From' set to: ${defaultFromNode.name} (user location)`);
+            }
+            
+            // Set 'To' Location if provided (from the 'Get Directions' button)
+            if (destinationNode) {
+                selectedToNode = destinationNode;
+                toInput.value = destinationNode.name;
             }
         }
 
@@ -927,23 +1069,34 @@
         const USER_LOCATION_SUFFIX = ' (user location)';
         function normalizeInput(value) {
             let normalized = value.toLowerCase().trim();
-            // Check for the suffix and remove it if present
             if (normalized.endsWith(USER_LOCATION_SUFFIX.toLowerCase())) {
                 normalized = normalized.slice(0, normalized.length - USER_LOCATION_SUFFIX.length).trim();
             }
             return normalized;
         }
+        
+        // Helper to determine if the current selection is based on the user's location (i.e., has the suffix)
+        function isUserLocationSelection(inputValue) {
+            return inputValue.toLowerCase().trim().endsWith(USER_LOCATION_SUFFIX.toLowerCase());
+        }
 
-        searchButton.addEventListener('click', openModal);
+        // --- EVENT LISTENERS ---
+        searchButton.addEventListener('click', () => openModal(null)); // Open modal without pre-selecting 'to'
         closeModalBtn.addEventListener('click', closeModal);
         
-        // --- NEW/MODIFIED: Drag/Select Fix and Modal Close Logic ---
+        // Get Directions button handler
+        getDirectionsBtn.addEventListener('click', () => {
+            if (currentlySelectedNode) {
+                openModal(currentlySelectedNode);
+            }
+        });
+        
+        // --- Drag/Select Fix and Modal Close Logic ---
         modalContent.addEventListener('mousedown', () => {
-            isDraggingText = false; // Reset on mousedown
+            isDraggingText = false; 
         });
         
         modalContent.addEventListener('mousemove', (e) => {
-            // If the mouse moves while the button is down, it's a drag/selection
             if (e.buttons === 1) { 
                 isDraggingText = true;
             }
@@ -957,28 +1110,28 @@
         });
 
         routeModal.addEventListener('click', (e) => {
-            // If the click target is the modal backdrop AND
-            // A drag/selection operation did NOT just occur
             if (e.target === routeModal && !isDraggingText) {
-                closeModal(); // Close if simple click on backdrop
+                closeModal(); 
             }
-            // Reset the flag immediately after the event is processed
             isDraggingText = false;
         });
 
-        // --- MODIFIED: handleRouteSearch to use normalizeInput ---
+        // --- handleRouteSearch ---
         function handleRouteSearch() {
             let isValid = true;
             fromError.style.display = 'none';
             toError.style.display = 'none';
             
-            // Get normalized input values
             const normalizedFromInput = normalizeInput(fromInput.value);
             const normalizedToInput = normalizeInput(toInput.value);
             const selectedFromName = selectedFromNode ? selectedFromNode.name.toLowerCase().trim() : '';
             const selectedToName = selectedToNode ? selectedToNode.name.toLowerCase().trim() : '';
+            
+            // Clear all previous highlights before validation
+            document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
+            document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
 
-            // Check if a node is selected AND if the input text matches the node name (after normalization)
+
             if (!selectedFromNode || normalizedFromInput !== selectedFromName) {
                 fromError.innerText = 'Please select a valid starting location from the list.';
                 fromError.style.display = 'block';
@@ -1000,30 +1153,36 @@
             if (isValid) {
                 console.log(`Starting route search from ${selectedFromNode.name} (ID: ${selectedFromNode.id}) to ${selectedToNode.name} (ID: ${selectedToNode.id}).`);
                 
+                // 1. Highlight the destination node (selectedToNode) and center/zoom
+                selectAndCenterOnNode(selectedToNode); 
+
+                // 2. Highlight the starting node (selectedFromNode) if it's NOT the user's current location
+                const fromNodeElement = document.querySelector(`.node[data-id="${selectedFromNode.id}"]`);
+                if (fromNodeElement && !isUserLocationSelection(fromInput.value)) {
+                    // Apply blue highlight for the manually selected 'From' node
+                    fromNodeElement.classList.add('from-highlight');
+                }
+                
                 // TODO: Implement Dijkstra/A* pathfinding here.
                 
-                selectAndCenterOnNode(selectedToNode);
                 closeModal();
             }
         }
         
         routeSearchBtn.addEventListener('click', handleRouteSearch);
 
-        // --- MODIFIED: handleAutocomplete to use normalizeInput and properly handle selection ---
         function handleAutocomplete(inputElement, resultsElement, isFromInput) {
             const rawQuery = inputElement.value;
-            const query = normalizeInput(rawQuery); // Use normalized query for searching
+            const query = normalizeInput(rawQuery); 
             resultsElement.innerHTML = ''; 
             resultsElement.style.display = 'none';
             
             const selectedNode = isFromInput ? selectedFromNode : selectedToNode;
             const selectedError = isFromInput ? fromError : toError;
             
-            // Reset selected node if the user is actively typing a new query
             if (selectedNode && query !== selectedNode.name.toLowerCase().trim()) {
-                // If it's the 'from' input, ensure we don't clear the selectedFromNode if the input still contains the full name + suffix
                 if (isFromInput && rawQuery.toLowerCase().trim() === (selectedNode.name + USER_LOCATION_SUFFIX).toLowerCase().trim()) {
-                    // Do nothing, keep the default selection
+                    // If it's the 'from' input and the user hasn't modified the full default text, keep it selected
                 } else {
                     if (isFromInput) {
                         selectedFromNode = null;
@@ -1107,6 +1266,7 @@
             wasPanning = false; 
             start.x = e.clientX - view.x;
             start.y = e.clientY - view.y;
+            clearNodeSelection(); // Clear selection on pan/drag start
         });
         window.addEventListener('mouseup', (e) => {
             panning = false;
@@ -1124,17 +1284,29 @@
         mapContainer.addEventListener('wheel', (e) => {
             e.preventDefault(); 
             isAnimatingPan = false; 
+            
+            // Set the target scale based on wheel delta
+            const zoomFactor = 0.05; 
+            const delta = e.deltaY < 0 ? 1 : -1; 
+            targetScale = Math.max(0.5, Math.min(10, scale + delta * zoomFactor * scale)); 
+            
             const rect = mapContainer.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
+            
+            // Calculate new view center based on targetScale
             const worldX = (mouseX - view.x) / scale;
             const worldY = (mouseY - view.y) / scale;
-            const zoomFactor = 0.05; 
-            const delta = e.deltaY < 0 ? 1 : -1; 
-            const newScale = Math.max(0.5, Math.min(10, scale + delta * zoomFactor * scale)); 
-            let newViewX = mouseX - worldX * newScale;
-            let newViewY = mouseY - worldY * newScale;
-            setTransform(newViewX, newViewY, newScale);
+            let newViewX = mouseX - worldX * targetScale;
+            let newViewY = mouseY - worldY * targetScale;
+            
+            // Start the smooth animation
+            animatePanToTarget(newViewX, newViewY, targetScale);
+            
+            // Clear selection if user zooms
+            if (currentlySelectedNode) {
+                 clearNodeSelection();
+            }
         });
 
         mapContainer.addEventListener('touchstart', (e) => {
@@ -1146,11 +1318,14 @@
                 isPinching = false;
                 start.x = e.touches[0].clientX - view.x;
                 start.y = e.touches[0].clientY - view.y;
+                clearNodeSelection(); // Clear selection on pan/drag start
             } else if (e.touches.length === 2) {
                 panning = false;
                 isPinching = true;
                 initialPinchDistance = getPinchDistance(e.touches);
                 startScale = scale; 
+                targetScale = scale; // Initialize target scale for pinching
+                clearNodeSelection(); // Clear selection on pinch start
             }
         });
         window.addEventListener('touchend', (e) => {
@@ -1178,19 +1353,29 @@
                 const worldX = (pinchCenterX - view.x) / scale;
                 const worldY = (pinchCenterY - view.y) / scale;
                 const currentDistance = getPinchDistance(e.touches);
+                
+                // Calculate the new scale (instant update for pinch)
                 const scaleFactor = currentDistance / initialPinchDistance;
                 const newScale = Math.max(0.5, Math.min(10, startScale * scaleFactor)); 
+                
+                // Set the current scale and target scale
+                scale = newScale;
+                targetScale = newScale;
+                
                 let newViewX = pinchCenterX - worldX * newScale;
                 let newViewY = pinchCenterY - worldY * newScale;
+                
                 setTransform(newViewX, newViewY, newScale);
             }
         });
         
+        // --- MODIFIED: mapContainer.addEventListener('click') - Snap to closest node ---
         mapContainer.addEventListener('click', (e) => {
             if (wasPanning || isPinching) {
                 wasPanning = false; 
                 return;
             }
+            
             const rect = mapContainer.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
@@ -1202,7 +1387,11 @@
             const currentImageHeight = mapImage.offsetHeight;
             const widthRatio = currentImageWidth / originalImageWidth;
             const heightRatio = currentImageHeight / originalImageHeight;
-            if (originalImageWidth === 0) return; 
+            if (originalImageWidth === 0) {
+                clearNodeSelection(); 
+                return;
+            }
+            
             nodesData.nodes.forEach(node => {
                 const nodeRenderX = (node.x * NODE_SCALE_FACTOR) * widthRatio;
                 const nodeRenderY = (node.y * NODE_SCALE_FACTOR) * heightRatio;
@@ -1214,20 +1403,22 @@
                     closestNode = node;
                 }
             });
+            
+            // LOGIC: Always snap to the closest node
             if (closestNode) {
-                const oldSelectedNode = document.querySelector('.node.selected');
-                const oldSelectedLabel = document.querySelector('.node-label.selected');
-                if (oldSelectedNode) oldSelectedNode.classList.remove('selected');
-                if (oldSelectedLabel) oldSelectedLabel.classList.remove('selected');
-                const newNodeElement = document.querySelector(`.node[data-id="${closestNode.id}"]`);
-                const newLabelElement = document.querySelector(`.node-label[data-id="${closestNode.id}"]`);
-                if (newNodeElement) newNodeElement.classList.add('selected');
-                if (newLabelElement) newLabelElement.classList.add('selected');
-                console.log(`Closest node: ${closestNode.name} (ID: ${closestNode.id})`);
+                // If the user clicks the currently selected node, clear it (toggle)
+                if (currentlySelectedNode && currentlySelectedNode.id === closestNode.id) {
+                    clearNodeSelection();
+                } else {
+                    // Select the new node, which also centers/zooms and displays the info box
+                    selectAndCenterOnNode(closestNode); 
+                }
+            } else {
+                // Clicked far from any node or no nodes exist
+                clearNodeSelection();
             }
         });
 
     </script>
-
-</body>
+    </body> 
 </html>
