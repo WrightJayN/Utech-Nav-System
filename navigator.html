@@ -33,10 +33,16 @@
             --user-marker-color: #007aff;
             --primary-color: #007aff; 
             --primary-hover-color: #0056b3;
-            --danger-color: #dc3545; /* New: for the clear button */
+            --danger-color: #dc3545;
             --danger-hover-color: #c82333;
+            /* New/Modified Route Colors */
+            --node-start-color: #007bff; 
+            --node-end-color: #dc3545; 
+            --node-path-color: #28a745; 
+            --path-line-color: #28a745;
         }
         body[data-theme="dark"] {
+            /* ... (Dark theme variables unchanged, inheriting the new color variables) ... */
             --bg-color: #1e1e1e;
             --surface-color: #2b2b2b;
             --border-color: #444444;
@@ -52,6 +58,11 @@
             --primary-hover-color: #0056b3;
             --danger-color: #dc3545;
             --danger-hover-color: #c82333;
+            /* New/Modified Route Colors (Adjusting for dark theme visibility) */
+            --node-start-color: #4da6ff; 
+            --node-end-color: #ff6666;
+            --node-path-color: #47d16d;
+            --path-line-color: #47d16d;
         }
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -86,6 +97,23 @@
             transform-origin: 0 0; 
             will-change: transform;
         }
+        /* NEW: SVG layer for drawing paths */
+        #path-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5; /* Below nodes but above map image */
+        }
+        .path-line {
+            stroke: var(--path-line-color);
+            stroke-width: 5;
+            stroke-linecap: round;
+            opacity: 0.7;
+            transition: stroke 0.3s ease, opacity 0.3s ease;
+        }
         #map-image {
             display: block;
             width: 100%; 
@@ -110,6 +138,19 @@
             display: none; /* Base state is hidden */
             transition: filter 0.3s ease; 
         }
+        /* New global visibility class, controlled by toggle button */
+        .node.global-visible {
+            display: block;
+        }
+        .node-label.global-visible {
+            display: block;
+        }
+        /* Override global-visible if a route is active (route-node-visible takes priority) */
+        body[data-route-active] .node.global-visible, 
+        body[data-route-active] .node-label.global-visible {
+             display: none;
+        }
+
         body[data-theme="dark"] .node {
             filter: invert(1) hue-rotate(180deg); 
         }
@@ -131,14 +172,34 @@
             background-color: rgba(43, 43, 43, 0.8);
             filter: invert(1) hue-rotate(180deg); 
         }
-        /* New persistent visibility class */
+        /* Persistent visibility for route nodes */
         .node.route-node-visible {
             display: block !important;
         }
-        /* Ensure selected/highlighted nodes are visible and labelled */
-        .node.selected {
-            display: block;
+        /* Specific coloring for route nodes */
+        .node.path-intermediate {
+            background-color: var(--node-path-color);
+            border-color: darken(var(--node-path-color), 10%);
+            box-shadow: 0 0 5px var(--node-path-color);
         }
+        .node.path-start {
+            background-color: var(--node-start-color);
+            border-color: darken(var(--node-start-color), 10%);
+            box-shadow: 0 0 8px var(--node-start-color);
+            width: 14px;
+            height: 14px;
+            z-index: 16;
+        }
+        .node.path-end {
+            background-color: var(--node-end-color);
+            border-color: darken(var(--node-end-color), 10%);
+            box-shadow: 0 0 8px var(--node-end-color);
+            width: 14px;
+            height: 14px;
+            z-index: 16;
+        }
+        /* Ensure selection highlights and labels are visible over all other nodes */
+        .node.selected,
         .node-label.selected {
             display: block;
         }
@@ -159,13 +220,13 @@
         body[data-theme="dark"] .user-location-marker {
             filter: invert(1) hue-rotate(180deg); 
         }
-        /* Search container remains the same */
+        /* Top Left Controls */
         #search-container {
             position: absolute;
             top: 15px;
             left: 15px;
             z-index: 30;
-            width: auto; /* Allow button to size content */
+            width: auto; 
             max-width: 360px;
         }
 
@@ -195,202 +256,13 @@
             box-shadow: 0 4px 12px var(--shadow-color), 0 0 0 3px var(--focus-ring-color);
         }
         
-        /* Modal remains the same */
-        #route-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000; 
-            display: none; 
-            align-items: center;
-            justify-content: center;
-        }
-
-        #modal-content {
-            background-color: var(--surface-color);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px var(--shadow-color);
-            width: 90%;
-            max-width: 400px;
-            color: var(--text-color);
-            transition: background-color 0.3s ease, color 0.3s ease;
-            transform: scale(0.95);
-            opacity: 0;
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-        }
-        
-        #route-modal.open #modal-content {
-            transform: scale(1);
-            opacity: 1;
-        }
-        
-        #modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            font-size: 1.2em;
-            font-weight: 600;
-        }
-        
-        #modal-header button {
-            background: none;
-            border: none;
-            font-size: 1.5em;
-            cursor: pointer;
-            color: var(--icon-color);
-            line-height: 1;
-        }
-
-        .modal-input-group {
-            margin-bottom: 15px;
-        }
-
-        .modal-input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .modal-input {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            box-sizing: border-box;
-            background-color: var(--bg-color); 
-            color: var(--text-color);
-            outline: none;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease, color 0.3s ease;
-        }
-
-        .modal-input:focus {
-            border-color: var(--focus-ring-color);
-            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
-        }
-        
-        #route-search-btn {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            border: none;
-            border-radius: 6px;
-            background-color: var(--primary-color);
-            color: white;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: background-color 0.2s ease;
-        }
-        
-        #route-search-btn:hover {
-            background-color: var(--primary-hover-color);
-        }
-
-        #autocomplete-results-from, #autocomplete-results-to {
-            background-color: var(--surface-color); 
-            border: none;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px var(--shadow-color); 
-            max-height: 200px; 
-            overflow-y: auto;
-            position: absolute; 
-            width: 100%;
-            z-index: 1001; 
-            display: none;
-            margin-top: 2px;
-            overflow: hidden; 
-            transition: background-color 0.3s ease;
-        }
-        
-        .search-result-item {
-            padding: 10px; 
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-color); 
-            font-size: 15px;
-            color: var(--text-color); 
-            transition: background-color 0.2s ease, color 0.3s ease, border-color 0.3s ease;
-        }
-        .search-result-item:hover {
-            background-color: var(--bg-color); 
-        }
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-        
-        .error-message {
-            color: red;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        /* --- NEW: NODE INFO DISPLAY BOX --- */
-        #node-info-display {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            z-index: 30;
-            display: none; 
-            background-color: var(--surface-color);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px var(--shadow-color);
-            padding: 10px;
-            max-width: 360px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            height: 44px;
-            box-sizing: border-box; 
-        }
-        #node-name {
-            flex-grow: 1;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-color);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        #get-directions-btn, #close-info-btn {
-            padding: 8px 12px;
-            font-size: 14px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            font-weight: 500;
-            outline: none;
-            height: 100%; 
-        }
-        #get-directions-btn {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        #get-directions-btn:hover {
-            background-color: var(--primary-hover-color);
-        }
-        #close-info-btn {
-            background-color: var(--bg-color);
-            color: var(--icon-color);
-        }
-        #close-info-btn:hover {
-            background-color: var(--border-color);
-        }
-        
-        /* --- NEW: Clear Route Button --- */
+        /* Node Info Display and Clear Route Button are also top-left */
         #clear-route-btn {
             position: absolute;
             top: 15px;
             left: 15px;
             z-index: 30;
-            display: none; /* Initially hidden */
+            display: none; 
             padding: 8px 12px;
             font-size: 14px;
             border: none;
@@ -401,7 +273,6 @@
             cursor: pointer;
             min-width: 150px;
             height: 44px;
-            display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
@@ -411,12 +282,45 @@
         #clear-route-btn:hover {
             background-color: var(--danger-hover-color);
         }
-        /* Hide search button when clear route is visible, and vice versa */
+        /* Bottom Left Control */
+        #toggle-nodes-container {
+            position: absolute;
+            bottom: 20px;
+            left: 15px;
+            z-index: 30;
+            width: auto;
+        }
+        #toggle-nodes-btn {
+            width: 44px;
+            height: 44px;
+            background-color: var(--surface-color);
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            outline: none;
+        }
+        #toggle-nodes-btn:hover {
+             background-color: var(--bg-color);
+        }
+        #toggle-nodes-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--icon-color);
+            stroke-width: 2.5;
+            fill: none;
+            transition: stroke 0.3s ease;
+        }
+
+        
+        /* UI State Control */
         body:not([data-route-active]) #clear-route-btn { display: none; }
         body[data-route-active] #search-container { display: none; }
         body[data-route-active] #node-info-display { display: none; }
-        
-        /* If a node is selected but no route is active, show node info and hide search/clear */
         body:not([data-route-active]) #node-info-display[style*="flex"] ~ #search-container { display: none; }
         body:not([data-route-active]) #node-info-display[style*="flex"] ~ #clear-route-btn { display: none; }
 
@@ -440,17 +344,6 @@
             transition: background-color 0.3s ease, box-shadow 0.3s ease;
             outline: none;
         }
-        #theme-toggle:hover {
-             background-color: var(--bg-color);
-        }
-        #theme-toggle svg {
-            width: 24px;
-            height: 24px;
-            stroke: var(--icon-color);
-            stroke-width: 2.5;
-            fill: none;
-            transition: stroke 0.3s ease;
-        }
         #location-controls {
             position: absolute;
             top: 74px; 
@@ -464,20 +357,6 @@
             font-size: 12px;
             color: var(--text-color);
             transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
-        }
-        #location-controls label {
-            display: block;
-            margin-bottom: 2px;
-            font-weight: 500;
-        }
-        #location-controls input[type="range"] {
-            width: 100%;
-        }
-        #coords-display {
-            margin-top: 8px;
-            font-family: monospace;
-            white-space: pre; 
-            line-height: 1.4;
         }
         #center-user-btn {
             position: absolute;
@@ -496,19 +375,6 @@
             justify-content: center;
             transition: background-color 0.3s ease, box-shadow 0.3s ease;
             outline: none;
-        }
-        #center-user-btn:hover {
-             background-color: var(--bg-color);
-        }
-        #center-user-btn svg {
-            width: 24px;
-            height: 24px;
-            stroke: var(--icon-color);
-            stroke-width: 2;
-            fill: none;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            transition: stroke 0.3s ease;
         }
 
     </style>
@@ -555,6 +421,16 @@
         <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             </svg>
     </button>
+    
+    <div id="toggle-nodes-container">
+        <button id="toggle-nodes-btn" aria-label="Toggle all nodes and edges visibility">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+        </button>
+    </div>
+
 
     <div id="location-controls">
         <label for="lat-slider">Latitude</label>
@@ -571,6 +447,7 @@
         <div id="transform-wrapper">
             <img id="map-image" src="Utech-CampusMap-Full.png" alt="UTech Campus Map" />
             <div id="user-location-marker" class="user-location-marker"></div>
+            <svg id="path-svg"></svg>
         </div>
     </div>
     
@@ -637,10 +514,16 @@
         const closeInfoBtn = document.getElementById('close-info-btn');
         // NEW: Clear Route Button
         const clearRouteBtn = document.getElementById('clear-route-btn');
+        // NEW: Path SVG element
+        const pathSVG = document.getElementById('path-svg');
+        // NEW: Toggle Nodes Button
+        const toggleNodesBtn = document.getElementById('toggle-nodes-btn');
 
 
         // --- EXISTING VARIABLES ---
         let nodesData = { nodes: [], edges: [] };
+        let nodeMap = {}; // Maps node ID to node object
+        let adjList = {}; // Adjacency list for Dijkstra's
         let originalImageWidth = 0;
         let originalImageHeight = 0;
         const NODE_SCALE_FACTOR = 3.42;
@@ -663,6 +546,7 @@
         let selectedToNode = null;
         let isDraggingText = false; 
         let currentlySelectedNode = null; // Track the node currently displayed in the info box
+        let nodesVisible = false; // Initial state for node visibility toggle
 
         const P1_GEO = { lat: 18.015941, lon: -76.744185 }; 
         const P1_PIXEL = { x: 1283, y: 3090 }; 
@@ -674,6 +558,144 @@
 
         const sunIcon = `<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
         const moonIcon = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+
+        // --- DIJKSTRA'S ALGORITHM IMPLEMENTATION ---
+
+        function calculateDistance(nodeA, nodeB) {
+            // Weights are based on pixel distance (Euclidean distance)
+            const dx = (nodeA.x * NODE_SCALE_FACTOR) - (nodeB.x * NODE_SCALE_FACTOR);
+            const dy = (nodeA.y * NODE_SCALE_FACTOR) - (nodeB.y * NODE_SCALE_FACTOR);
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function preprocessGraph(data) {
+            nodeMap = {};
+            adjList = {};
+
+            // 1. Create Node Map (ID to Node Object)
+            data.nodes.forEach(node => {
+                nodeMap[node.id] = node;
+                adjList[node.id] = [];
+            });
+
+            // 2. Build Undirected Adjacency List with Weights (Pixel Distance)
+            data.edges.forEach(edge => {
+                const nodeA = nodeMap[edge.source];
+                const nodeB = nodeMap[edge.target];
+
+                if (!nodeA || !nodeB) {
+                    console.error(`Edge references non-existent node: ${edge.source} or ${edge.target}`);
+                    return;
+                }
+
+                const distance = calculateDistance(nodeA, nodeB);
+
+                // Undirected: A -> B
+                adjList[edge.source].push({ node: edge.target, weight: distance });
+                // Undirected: B -> A
+                adjList[edge.target].push({ node: edge.source, weight: distance });
+            });
+
+            console.log("Graph preprocessed successfully.");
+        }
+
+        function dijkstra(startNodeId, endNodeId) {
+            const distances = {};
+            const predecessors = {};
+            const priorityQueue = []; 
+
+            // Initialization
+            for (let nodeId in adjList) {
+                distances[nodeId] = Infinity;
+                predecessors[nodeId] = null;
+            }
+            distances[startNodeId] = 0;
+            priorityQueue.push({ id: startNodeId, distance: 0 });
+
+            while (priorityQueue.length > 0) {
+                // Simulate Min-Heap by sorting
+                priorityQueue.sort((a, b) => a.distance - b.distance);
+                const { id: currentId, distance: currentDistance } = priorityQueue.shift();
+
+                if (currentDistance > distances[currentId]) continue;
+
+                if (currentId === endNodeId) break;
+
+                // Explore neighbors
+                for (const edge of adjList[currentId]) {
+                    const neighborId = edge.node;
+                    const weight = edge.weight;
+                    const newDistance = currentDistance + weight;
+
+                    if (newDistance < distances[neighborId]) {
+                        distances[neighborId] = newDistance;
+                        predecessors[neighborId] = currentId;
+                        priorityQueue.push({ id: neighborId, distance: newDistance });
+                    }
+                }
+            }
+
+            // Reconstruct path
+            const path = [];
+            let current = endNodeId;
+            while (current) {
+                path.unshift(current);
+                current = predecessors[current];
+                if (path.length > Object.keys(adjList).length) {
+                    console.error("Path reconstruction loop detected.");
+                    return null;
+                }
+            }
+
+            return path.length > 1 && path[0] === startNodeId ? path : null;
+        }
+
+        // --- NEW: Function to draw the shortest path using SVG ---
+        function drawPath(path) {
+            pathSVG.innerHTML = ''; // Clear old paths
+            
+            if (!path || path.length < 2) return;
+
+            const currentImageWidth = mapImage.offsetWidth;
+            const originalImageWidth = mapImage.naturalWidth;
+            const currentImageHeight = mapImage.offsetHeight;
+            const originalImageHeight = mapImage.naturalHeight;
+            
+            const widthRatio = currentImageWidth / originalImageWidth;
+            const heightRatio = currentImageHeight / originalImageHeight;
+            
+            // Set SVG size to match image size (for 1:1 coordinate mapping)
+            pathSVG.setAttribute('width', `${currentImageWidth}px`);
+            pathSVG.setAttribute('height', `${currentImageHeight}px`);
+
+            let previousNode = null;
+
+            for (const nodeId of path) {
+                const node = nodeMap[nodeId];
+                if (!node) continue;
+                
+                // Calculate position scaled to current image size
+                const nodeRenderX = (node.x * NODE_SCALE_FACTOR) * widthRatio;
+                const nodeRenderY = (node.y * NODE_SCALE_FACTOR) * heightRatio;
+                
+                if (previousNode) {
+                    // Create line segment from previous node to current node
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.classList.add('path-line');
+                    
+                    line.setAttribute('x1', previousNode.x);
+                    line.setAttribute('y1', previousNode.y);
+                    line.setAttribute('x2', nodeRenderX);
+                    line.setAttribute('y2', nodeRenderY);
+                    
+                    pathSVG.appendChild(line);
+                }
+                
+                previousNode = { x: nodeRenderX, y: nodeRenderY, id: nodeId };
+            }
+        }
+        // --- END DIJKSTRA'S ALGORITHM IMPLEMENTATION ---
+
 
         function lerp(start, end, amt) {
             return (1 - amt) * start + amt * end;
@@ -769,6 +791,7 @@
                 })
                 .then(data => {
                     nodesData = data; 
+                    preprocessGraph(data); // Preprocess graph data here
                 })
                 .catch(error => {
                     throw new Error(`Failed to load or parse JSON: ${error.message}`);
@@ -841,6 +864,11 @@
                     transformWrapper.appendChild(labelElement);
                 }
             });
+            
+            // Initial render state based on nodesVisible
+            if (nodesVisible) {
+                document.querySelectorAll('.node, .node-label').forEach(el => el.classList.add('global-visible'));
+            }
         }
 
         window.addEventListener('resize', () => {
@@ -1009,23 +1037,50 @@
         // Helper to clear the node selection and hide the info box
         function clearNodeSelection() {
             // Clear transient highlights/selections
-            document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
+            document.querySelectorAll('.node.selected, .node.from-highlight, .node.path-intermediate, .node.path-start, .node.path-end').forEach(el => el.classList.remove('selected', 'from-highlight', 'path-intermediate', 'path-start', 'path-end'));
             document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
             
             // Clear persistent route visibility
             document.querySelectorAll('.node.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
             document.querySelectorAll('.node-label.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
 
+            // Clear the path drawing
+            pathSVG.innerHTML = '';
+
             currentlySelectedNode = null;
             nodeInfoDisplay.style.display = 'none';
             // NEW: Hide the clear route button and show the search button
             document.body.removeAttribute('data-route-active');
+
+            // Restore global visibility state (if nodes were visible before route search)
+            if (nodesVisible) {
+                 document.querySelectorAll('.node, .node-label').forEach(el => el.classList.add('global-visible'));
+            }
         }
         
         closeInfoBtn.addEventListener('click', clearNodeSelection);
         // NEW: Clear Route Button Listener
         clearRouteBtn.addEventListener('click', clearNodeSelection);
 
+        // --- NEW: Toggle All Nodes/Edges Visibility ---
+        toggleNodesBtn.addEventListener('click', () => {
+            nodesVisible = !nodesVisible;
+            
+            // Toggle visibility classes on all nodes and labels
+            const elements = document.querySelectorAll('.node, .node-label');
+            elements.forEach(el => el.classList.toggle('global-visible', nodesVisible));
+
+            // Hide all path lines when toggling global node visibility
+            pathSVG.style.opacity = nodesVisible ? '0.7' : '0';
+            
+            // If nodes are made visible, ensure the path SVG is visible as well
+            if (nodesVisible) {
+                 pathSVG.style.opacity = '0.7';
+                 // If a route is active, its nodes already have 'route-node-visible' which overrides 'global-visible'
+            } else {
+                 pathSVG.style.opacity = '0';
+            }
+        });
 
         function panToLocation(lat, lon) {
             if (originalImageWidth === 0) return; 
@@ -1206,7 +1261,7 @@
             isDraggingText = false;
         });
 
-        // --- MODIFIED: handleRouteSearch to apply persistent visibility AND zoom out ---
+        // --- MODIFIED: handleRouteSearch to apply Dijkstra's and display path/nodes ---
         function handleRouteSearch() {
             let isValid = true;
             fromError.style.display = 'none';
@@ -1243,34 +1298,55 @@
             if (isValid) {
                 console.log(`Starting route search from ${selectedFromNode.name} (ID: ${selectedFromNode.id}) to ${selectedToNode.name} (ID: ${selectedToNode.id}).`);
                 
-                // --- GET NODE ELEMENTS ---
-                const fromNodeElement = document.querySelector(`.node[data-id="${selectedFromNode.id}"]`);
-                const fromLabelElement = document.querySelector(`.node-label[data-id="${selectedFromNode.id}"]`);
-                const toNodeElement = document.querySelector(`.node[data-id="${selectedToNode.id}"]`);
-                const toLabelElement = document.querySelector(`.node-label[data-id="${selectedToNode.id}"]`);
+                // --- 1. RUN DIJKSTRA'S ---
+                const shortestPath = dijkstra(selectedFromNode.id, selectedToNode.id);
                 
-                // --- 1. APPLY PERSISTENT VISIBILITY (Red Circles) ---
+                if (!shortestPath) {
+                    alert("Route not found. The selected locations may not be connected.");
+                    console.warn("No path found between the selected nodes.");
+                    
+                    // Show points but don't draw path or proceed to map view change
+                    if(document.body.hasAttribute('data-route-active')) {
+                        clearNodeSelection();
+                    }
+                    
+                    document.body.setAttribute('data-route-active', 'true');
+                    closeModal();
+                    return;
+                }
                 
-                // Apply 'selected' and 'route-node-visible' to the 'from' node
-                if (fromNodeElement) {
-                    fromNodeElement.classList.add('selected', 'route-node-visible');
-                }
-                // Ensure the label for 'from' is hidden
-                if (fromLabelElement) {
-                    fromLabelElement.classList.remove('selected'); 
-                    fromLabelElement.classList.add('route-node-visible'); 
-                }
+                // Ensure temporary node selections are cleared before path drawing
+                document.querySelectorAll('.node.selected, .node.from-highlight, .node.path-intermediate, .node.path-start, .node.path-end').forEach(el => el.classList.remove('selected', 'from-highlight', 'path-intermediate', 'path-start', 'path-end'));
 
-                // Apply 'selected' and 'route-node-visible' to the 'to' node
-                if (toNodeElement) {
-                    toNodeElement.classList.add('selected', 'route-node-visible');
-                }
-                // Ensure the label for 'to' is visible (using 'selected' which implies route-node-visible)
-                if (toLabelElement) {
-                    toLabelElement.classList.add('selected', 'route-node-visible'); 
+                // --- 2. DRAW PATH AND HIGHLIGHT NODES ---
+                
+                drawPath(shortestPath);
+                
+                const pathStartId = shortestPath[0];
+                const pathEndId = shortestPath[shortestPath.length - 1];
+
+                for(let i = 0; i < shortestPath.length; i++) {
+                    const nodeId = shortestPath[i];
+                    const nodeElement = document.querySelector(`.node[data-id="${nodeId}"]`);
+                    const labelElement = document.querySelector(`.node-label[data-id="${nodeId}"]`);
+                    
+                    if (nodeElement) {
+                        nodeElement.classList.add('route-node-visible');
+                        
+                        // Set colors based on position in path
+                        if (nodeId === pathStartId) {
+                            nodeElement.classList.add('path-start');
+                        } else if (nodeId === pathEndId) {
+                            nodeElement.classList.add('path-end');
+                            // Only show label for the destination node
+                            if (labelElement) labelElement.classList.add('selected');
+                        } else {
+                            nodeElement.classList.add('path-intermediate');
+                        }
+                    }
                 }
                 
-                // --- 2. ZOOM OUT AND CENTER (Reset Zoom to 1.0) ---
+                // --- 3. ZOOM OUT AND CENTER ---
                 
                 const currentImageWidth = mapImage.offsetWidth;
                 const currentImageHeight = mapImage.offsetHeight;
@@ -1286,21 +1362,18 @@
                 const midX = (nodeX1 + nodeX2) / 2;
                 const midY = (nodeY1 + nodeY2) / 2;
 
-                // FIX: Reset zoom fully to 1.0
+                // Reset zoom fully to 1.0
                 const zoomScale = 1.0; 
 
                 // Calculate view center based on midpoint and zoom level
                 const newViewX = (mapContainer.clientWidth / 2) - (midX * zoomScale);
                 const newViewY = (mapContainer.clientHeight / 2) - (midY * zoomScale);
                 
-                currentlySelectedNode = selectedToNode; // Keep 'to' node as the context
+                currentlySelectedNode = selectedToNode; 
                 
                 animatePanToTarget(newViewX, newViewY, zoomScale); 
                 
-                // NEW: Show the clear route button
                 document.body.setAttribute('data-route-active', 'true');
-                
-                // TODO: Implement Dijkstra/A* pathfinding here.
                 
                 closeModal();
             }
