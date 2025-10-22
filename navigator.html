@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Navigator</title>
+    <style>
+        /* --- NEW CSS STYLE INJECTION FOR FROM-HIGHLIGHT --- */
+        .node.from-highlight {
+            background-color: #007bff; /* Blue */
+            border: 2px solid #0056b3; 
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.8);
+            width: 12px;
+            height: 12px;
+            z-index: 15;
+        }
+        /* Adding persistent visibility for route nodes */
+        .node.route-node-visible {
+            display: block !important;
+        }
+        /* --- EXISTING CSS STYLES --- */
+        :root {
+            --bg-color: #f7f9fa;
+            --surface-color: #ffffff;
+            --border-color: #e0e0e0;
+            --text-color: #333333;
+            --subtle-text-color: #999999;
+            --shadow-color: rgba(0,0,0,0.1);
+            --focus-ring-color: #007aff;
+            --icon-color: #666;
+            --node-red: red;
+            --node-darkred: darkred;
+            --user-marker-color: #007aff;
+            --primary-color: #007aff; 
+            --primary-hover-color: #0056b3;
+            --danger-color: #dc3545; /* New: for the clear button */
+            --danger-hover-color: #c82333;
+        }
+        body[data-theme="dark"] {
+            --bg-color: #1e1e1e;
+            --surface-color: #2b2b2b;
+            --border-color: #444444;
+            --text-color: #e0e0e0;
+            --subtle-text-color: #aaaaaa;
+            --shadow-color: rgba(0,0,0,0.4);
+            --focus-ring-color: #007bff; 
+            --icon-color: #ccc;
+            --node-red: red;
+            --node-darkred: darkred;
+            --user-marker-color: #007aff; 
+            --primary-color: #007bff; 
+            --primary-hover-color: #0056b3;
+            --danger-color: #dc3545;
+            --danger-hover-color: #c82333;
+        }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0; 
+            background-color: var(--bg-color); 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text-color); 
+            transition: background-color 0.3s ease, color 0.3s ease; 
+        }
+        #map-container {
+            position: relative;
+            border: none;
+            overflow: hidden; 
+            background-color: var(--surface-color); 
+            width: 100%;
+            height: 100%; 
+            cursor: grab; 
+            touch-action: none;
+        }
+        #map-container:active {
+            cursor: grabbing;
+        }
+        #transform-wrapper {
+            position: relative;
+            width: 100%;
+            height: auto;
+            transform-origin: 0 0; 
+            will-change: transform;
+        }
+        #map-image {
+            display: block;
+            width: 100%; 
+            height: auto;
+            pointer-events: none; 
+            transition: filter 0.3s ease; 
+        }
+        body[data-theme="dark"] #map-image {
+            filter: invert(1) hue-rotate(180deg); 
+        }
+        .node {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--node-red); 
+            border-radius: 50%;
+            transform: translate(-50%, -50%); 
+            cursor: pointer;
+            z-index: 10;
+            border: 1px solid var(--node-darkred); 
+            box-shadow: 0 0 5px rgba(255,0,0,0.5);
+            display: none; /* Base state is hidden */
+            transition: filter 0.3s ease; 
+        }
+        body[data-theme="dark"] .node {
+            filter: invert(1) hue-rotate(180deg); 
+        }
+        .node-label {
+            position: absolute;
+            white-space: nowrap;
+            font-size: 12px;
+            color: var(--text-color); 
+            background-color: rgba(255, 255, 255, 0.8); 
+            padding: 2px 5px;
+            border-radius: 3px;
+            transform: translate(10px, -50%);
+            pointer-events: none;
+            z-index: 11;
+            display: none;
+            transition: color 0.3s ease, background-color 0.3s ease, filter 0.3s ease;
+        }
+        body[data-theme="dark"] .node-label {
+            background-color: rgba(43, 43, 43, 0.8);
+            filter: invert(1) hue-rotate(180deg); 
+        }
+        /* New persistent visibility class */
+        .node.route-node-visible {
+            display: block !important;
+        }
+        /* Ensure selected/highlighted nodes are visible and labelled */
+        .node.selected {
+            display: block;
+        }
+        .node-label.selected {
+            display: block;
+        }
+        .user-location-marker {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 16px solid var(--user-marker-color); 
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            pointer-events: none;
+            filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+            display: none;
+            transition: filter 0.3s ease, border-bottom-color 0.3s ease, left 0.5s linear, top 0.5s linear, transform 0.5s ease;
+        }
+        body[data-theme="dark"] .user-location-marker {
+            filter: invert(1) hue-rotate(180deg); 
+        }
+        /* Search container remains the same */
+        #search-container {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 30;
+            width: auto; /* Allow button to size content */
+            max-width: 360px;
+        }
+
+        #search-button {
+            padding: 8px 12px; 
+            height: 44px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            background-color: var(--primary-color);
+            color: var(--surface-color); 
+            cursor: pointer;
+            width: auto;
+            min-width: 150px;
+            font-weight: 600;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #search-button:hover {
+            background-color: var(--primary-hover-color);
+        }
+        #search-button:focus {
+            box-shadow: 0 4px 12px var(--shadow-color), 0 0 0 3px var(--focus-ring-color);
+        }
+        
+        /* Modal remains the same */
+        #route-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000; 
+            display: none; 
+            align-items: center;
+            justify-content: center;
+        }
+
+        #modal-content {
+            background-color: var(--surface-color);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            width: 90%;
+            max-width: 400px;
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        
+        #route-modal.open #modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+        
+        #modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        #modal-header button {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: var(--icon-color);
+            line-height: 1;
+        }
+
+        .modal-input-group {
+            margin-bottom: 15px;
+        }
+
+        .modal-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            background-color: var(--bg-color); 
+            color: var(--text-color);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .modal-input:focus {
+            border-color: var(--focus-ring-color);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+        }
+        
+        #route-search-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s ease;
+        }
+        
+        #route-search-btn:hover {
+            background-color: var(--primary-hover-color);
+        }
+
+        #autocomplete-results-from, #autocomplete-results-to {
+            background-color: var(--surface-color); 
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color); 
+            max-height: 200px; 
+            overflow-y: auto;
+            position: absolute; 
+            width: 100%;
+            z-index: 1001; 
+            display: none;
+            margin-top: 2px;
+            overflow: hidden; 
+            transition: background-color 0.3s ease;
+        }
+        
+        .search-result-item {
+            padding: 10px; 
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color); 
+            font-size: 15px;
+            color: var(--text-color); 
+            transition: background-color 0.2s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        .search-result-item:hover {
+            background-color: var(--bg-color); 
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .error-message {
+            color: red;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* --- NEW: NODE INFO DISPLAY BOX --- */
+        #node-info-display {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 30;
+            display: none; 
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            padding: 10px;
+            max-width: 360px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 44px;
+            box-sizing: border-box; 
+        }
+        #node-name {
+            flex-grow: 1;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #get-directions-btn, #close-info-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-weight: 500;
+            outline: none;
+            height: 100%; 
+        }
+        #get-directions-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        #get-directions-btn:hover {
+            background-color: var(--primary-hover-color);
+        }
+        #close-info-btn {
+            background-color: var(--bg-color);
+            color: var(--icon-color);
+        }
+        #close-info-btn:hover {
+            background-color: var(--border-color);
+        }
+        
+        /* --- NEW: Clear Route Button --- */
+        #clear-route-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 30;
+            display: none; /* Initially hidden */
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            background-color: var(--danger-color);
+            color: white;
+            cursor: pointer;
+            min-width: 150px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            gap: 5px;
+            transition: background-color 0.2s ease, opacity 0.2s ease;
+        }
+        #clear-route-btn:hover {
+            background-color: var(--danger-hover-color);
+        }
+        /* Hide search button when clear route is visible, and vice versa */
+        body:not([data-route-active]) #clear-route-btn { display: none; }
+        body[data-route-active] #search-container { display: none; }
+        body[data-route-active] #node-info-display { display: none; }
+        
+        /* If a node is selected but no route is active, show node info and hide search/clear */
+        body:not([data-route-active]) #node-info-display[style*="flex"] ~ #search-container { display: none; }
+        body:not([data-route-active]) #node-info-display[style*="flex"] ~ #clear-route-btn { display: none; }
+
+
+        /* --- Existing CSS (Theme Toggle, Location Controls, Center Button) --- */
+        #theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 30;
+            width: 44px;
+            height: 44px;
+            background-color: var(--surface-color);
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            outline: none;
+        }
+        #theme-toggle:hover {
+             background-color: var(--bg-color);
+        }
+        #theme-toggle svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--icon-color);
+            stroke-width: 2.5;
+            fill: none;
+            transition: stroke 0.3s ease;
+        }
+        #location-controls {
+            position: absolute;
+            top: 74px; 
+            right: 15px;
+            z-index: 30;
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            padding: 12px;
+            width: 200px;
+            font-size: 12px;
+            color: var(--text-color);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+        }
+        #location-controls label {
+            display: block;
+            margin-bottom: 2px;
+            font-weight: 500;
+        }
+        #location-controls input[type="range"] {
+            width: 100%;
+        }
+        #coords-display {
+            margin-top: 8px;
+            font-family: monospace;
+            white-space: pre; 
+            line-height: 1.4;
+        }
+        #center-user-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 15px;
+            z-index: 30;
+            width: 44px;
+            height: 44px;
+            background-color: var(--surface-color);
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            outline: none;
+        }
+        #center-user-btn:hover {
+             background-color: var(--bg-color);
+        }
+        #center-user-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--icon-color);
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.3s ease;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="search-container">
+        <button id="search-button">Search for Route</button>
+    </div>
+
+    <button id="clear-route-btn" aria-label="Clear current route">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        Clear Route
+    </button>
+
+    <div id="node-info-display">
+        <span id="node-name"></span>
+        <button id="get-directions-btn">Get Directions</button>
+        <button id="close-info-btn">Close</button>
+    </div>
+    
+    <div id="route-modal">
+        <div id="modal-content">
+            <div id="modal-header">
+                <span>Find Route</span>
+                <button id="close-modal-btn">&times;</button>
+            </div>
+            <div class="modal-input-group">
+                <label for="from-input">From:</label>
+                <input type="text" id="from-input" class="modal-input" placeholder="Starting location">
+                <div id="autocomplete-results-from" class="autocomplete-results"></div>
+                <div id="from-error" class="error-message">Please select a starting location.</div>
+            </div>
+            <div class="modal-input-group">
+                <label for="to-input">To:</label>
+                <input type="text" id="to-input" class="modal-input" placeholder="Destination">
+                <div id="autocomplete-results-to" class="autocomplete-results"></div>
+                <div id="to-error" class="error-message">Please select a destination.</div>
+            </div>
+            <button id="route-search-btn">Get Directions</button>
+        </div>
+    </div>
+    <button id="theme-toggle" aria-label="Toggle light and dark mode">
+        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            </svg>
+    </button>
+
+    <div id="location-controls">
+        <label for="lat-slider">Latitude</label>
+        <input type="range" id="lat-slider" min="18.00" max="18.04" step="0.0001">
+        
+        <label for="lon-slider" style="margin-top: 8px;">Longitude</label>
+        <input type="range" id="lon-slider" min="-76.76" max="-76.73" step="0.0001">
+        
+        <div id="coords-display">Lat: 0.000000<br>Lon: 0.000000</div>
+    </div>
+
+
+    <div id="map-container">
+        <div id="transform-wrapper">
+            <img id="map-image" src="Utech-CampusMap-Full.png" alt="UTech Campus Map" />
+            <div id="user-location-marker" class="user-location-marker"></div>
+        </div>
+    </div>
+    
+    <button id="center-user-btn" aria-label="Center on my location">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="6"></circle>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+        </svg>
+    </button>
+
+
+    <script>
+        // --- MODIFIED CSS INJECTION: Add new blue highlight style ---
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .node.from-highlight {
+                background-color: #007bff; /* Blue */
+                border: 2px solid #0056b3; 
+                box-shadow: 0 0 8px rgba(0, 123, 255, 0.8);
+                width: 12px;
+                height: 12px;
+                z-index: 15;
+            }
+            /* Adding persistent visibility for route nodes */
+            .node.route-node-visible {
+                display: block !important;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // --- EXISTING CONSTANTS ---
+        const mapImage = document.getElementById('map-image');
+        const mapContainer = document.getElementById('map-container');
+        const transformWrapper = document.getElementById('transform-wrapper');
+        const userLocationMarker = document.getElementById('user-location-marker');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const latSlider = document.getElementById('lat-slider');
+        const lonSlider = document.getElementById('lon-slider');
+        const coordsDisplay = document.getElementById('coords-display');
+        const centerUserBtn = document.getElementById('center-user-btn');
+
+        // --- NEW CONSTANTS FOR MODAL & NODE INFO ---
+        const searchButton = document.getElementById('search-button');
+        const routeModal = document.getElementById('route-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const fromInput = document.getElementById('from-input');
+        const toInput = document.getElementById('to-input');
+        const routeSearchBtn = document.getElementById('route-search-btn');
+        const resultsFrom = document.getElementById('autocomplete-results-from');
+        const resultsTo = document.getElementById('autocomplete-results-to');
+        const fromError = document.getElementById('from-error');
+        const toError = document.getElementById('to-error');
+        const modalContent = document.getElementById('modal-content'); 
+        
+        // New Node Info Display elements
+        const nodeInfoDisplay = document.getElementById('node-info-display');
+        const nodeNameDisplay = document.getElementById('node-name');
+        const getDirectionsBtn = document.getElementById('get-directions-btn');
+        const closeInfoBtn = document.getElementById('close-info-btn');
+        // NEW: Clear Route Button
+        const clearRouteBtn = document.getElementById('clear-route-btn');
+
+
+        // --- EXISTING VARIABLES ---
+        let nodesData = { nodes: [], edges: [] };
+        let originalImageWidth = 0;
+        let originalImageHeight = 0;
+        const NODE_SCALE_FACTOR = 3.42;
+        let scale = 1;
+        let panning = false;
+        let view = { x: 0, y: 0 }; 
+        let start = { x: 0, y: 0 }; 
+        let isPinching = false;
+        let initialPinchDistance = 0;
+        let startScale = 1;
+        let wasPanning = false;
+        let currentUserLocation = null;
+        
+        let isAnimatingPan = false;
+        let targetView = { x: 0, y: 0 };
+        let targetScale = 1;
+        
+        // --- NEW VARIABLES FOR ROUTE STATE ---
+        let selectedFromNode = null;
+        let selectedToNode = null;
+        let isDraggingText = false; 
+        let currentlySelectedNode = null; // Track the node currently displayed in the info box
+        
+        // --- NEW: Graph & Pathfinding Variables ---
+        let adjacencyList = {}; // Our graph data structure
+        let nodeMap = {}; // For quick lookup of node data by ID
+        let pathSvg = null; // The SVG element for drawing lines
+        let currentPath = []; // Stores the last valid path for resizing
+
+        const P1_GEO = { lat: 18.015941, lon: -76.744185 }; 
+        const P1_PIXEL = { x: 1283, y: 3090 }; 
+        const P2_GEO = { lat: 18.017019, lon: -76.743908}; 
+        const P2_PIXEL = { x: 1331, y: 2484 }; 
+        
+        const lonScale = (P2_PIXEL.x - P1_PIXEL.x) / (P2_GEO.lon - P1_GEO.lon);
+        const latScale = (P2_PIXEL.y - P1_PIXEL.y) / (P2_GEO.lat - P1_GEO.lat);
+
+        const sunIcon = `<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
+        const moonIcon = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+
+        function lerp(start, end, amt) {
+            return (1 - amt) * start + amt * end;
+        }
+
+        // --- MODIFIED: animationLoop to use 0.03 for slower interpolation ---
+        function animationLoop() {
+            if (!isAnimatingPan) return; 
+            
+            // DECREASED INTERPOLATION RATE TO 0.03 for a slower animation
+            const INTERPOLATION_RATE = 0.03; 
+            
+            const newX = lerp(view.x, targetView.x, INTERPOLATION_RATE);
+            const newY = lerp(view.y, targetView.y, INTERPOLATION_RATE);
+            
+            // Smoothly interpolate scale
+            const newScale = lerp(scale, targetScale, INTERPOLATION_RATE);
+
+            setTransform(newX, newY, newScale);
+
+            const dx = Math.abs(view.x - targetView.x);
+            const dy = Math.abs(view.y - targetView.y);
+            const ds = Math.abs(scale - targetScale); // Check scale difference
+
+            // Stop if both panning and scaling are near the target
+            if (dx < 0.5 && dy < 0.5 && ds < 0.005) {
+                setTransform(targetView.x, targetView.y, targetScale); 
+                isAnimatingPan = false;
+            } else {
+                requestAnimationFrame(animationLoop); 
+            }
+        }
+
+        function animatePanToTarget(newViewX, newViewY, newScale) {
+            isAnimatingPan = false; 
+            targetView.x = newViewX;
+            targetView.y = newViewY;
+            
+            if (newScale !== undefined) {
+                 targetScale = newScale; 
+            }
+            isAnimatingPan = true;
+            requestAnimationFrame(animationLoop);
+        }
+
+        function applyTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark') {
+                themeIcon.innerHTML = moonIcon;
+            } else {
+                themeIcon.innerHTML = sunIcon;
+            }
+        }
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        }
+        
+        window.addEventListener('load', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                applyTheme('dark');
+            } else {
+                applyTheme('light');
+            }
+
+            const imageLoadPromise = new Promise((resolve, reject) => {
+                if (mapImage.complete) {
+                    originalImageWidth = mapImage.naturalWidth;
+                    originalImageHeight = mapImage.naturalHeight;
+                    mapContainer.style.width = mapImage.offsetWidth + 'px';
+                    resolve();
+                } else {
+                    mapImage.onload = () => {
+                        originalImageWidth = mapImage.naturalWidth;
+                        originalImageHeight = mapImage.naturalHeight;
+                        mapContainer.style.width = mapImage.offsetWidth + 'px';
+                        resolve();
+                    };
+                }
+                mapImage.onerror = () => reject(new Error('Failed to load map image. Check the filename (png vs jpg).'));
+            });
+            const jsonFetchPromise = fetch('campus-map-graph.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    nodesData = data; 
+                })
+                .catch(error => {
+                    throw new Error(`Failed to load or parse JSON: ${error.message}`);
+                });
+            
+            Promise.all([imageLoadPromise, jsonFetchPromise])
+                .then(() => {
+                    console.log('Image and JSON loaded successfully. Rendering nodes.');
+                    
+                    buildGraphDataStructures(); // <--- UPDATED
+                    
+                    setTransform(0, 0, 1); 
+                    targetView = { x: view.x, y: view.y }; 
+                    targetScale = 1; // Initialize target scale
+                    renderNodes(); 
+                    
+                    createPathSvgOverlay(); // <--- ADDED
+                    
+                    const initialLat = 18.0165;
+                    const initialLon = -76.7440;
+                    latSlider.value = initialLat;
+                    lonSlider.value = initialLon;
+                    handleSliderChange(); 
+                    
+                    // FIX: Ensure search button is visible by hiding the node info box initially
+                    nodeInfoDisplay.style.display = 'none';
+                    // Ensure route is inactive on load
+                    document.body.removeAttribute('data-route-active');
+
+                })
+                .catch(error => {
+                    console.error('Error loading page resources:', error);
+                    alert('Error loading map data: ' + error.message);
+                });
+        });
+        
+        themeToggle.addEventListener('click', toggleTheme);
+        
+        function handleSliderChange() {
+            const lat = parseFloat(latSlider.value);
+            const lon = parseFloat(lonSlider.value);
+            coordsDisplay.innerHTML = `Lat: ${lat.toFixed(6)}<br>Lon: ${lon.toFixed(6)}`;
+            updateUserLocation(lat, lon);
+        }
+        
+        latSlider.addEventListener('input', handleSliderChange);
+        lonSlider.addEventListener('input', handleSliderChange);
+
+
+        function renderNodes() {
+            document.querySelectorAll('.node, .node-label').forEach(el => el.remove());
+            if (!nodesData.nodes || nodesData.nodes.length === 0 || !mapImage.src || originalImageWidth === 0) {
+                return; 
+            }
+            const currentImageWidth = mapImage.offsetWidth;
+            const currentImageHeight = mapImage.offsetHeight;
+            const widthRatio = currentImageWidth / originalImageWidth;
+            const heightRatio = currentImageHeight / originalImageHeight;
+            nodesData.nodes.forEach(node => {
+                const nodeElement = document.createElement('div');
+                nodeElement.classList.add('node');
+                nodeElement.dataset.id = node.id;
+                const finalX = (node.x * NODE_SCALE_FACTOR) * widthRatio;
+                const finalY = (node.y * NODE_SCALE_FACTOR) * heightRatio;
+                nodeElement.style.left = `${finalX}px`;
+                nodeElement.style.top = `${finalY}px`;
+                transformWrapper.appendChild(nodeElement);
+                if (node.name) { 
+                    const labelElement = document.createElement('div');
+                    labelElement.classList.add('node-label');
+                    labelElement.dataset.id = node.id; 
+                    labelElement.innerText = node.name;
+                    labelElement.style.left = `${finalX}px`;
+                    labelElement.style.top = `${finalY}px`;
+                    transformWrapper.appendChild(labelElement);
+                }
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            if (!mapImage.src || originalImageWidth === 0) return;
+            mapContainer.style.width = '100%'; 
+            setTimeout(() => {
+                 mapContainer.style.width = mapImage.offsetWidth + 'px';
+                 resetTransform(); 
+                 renderNodes();
+
+                 // --- ADDED ---
+                 if (currentPath.length > 0) {
+                     drawPath(currentPath);
+                 }
+                 // --- END ADDED ---
+
+                 if (currentUserLocation) {
+                    updateUserLocation(currentUserLocation.lat, currentUserLocation.lon);
+                 }
+            }, 0);
+        });
+
+        function setTransform(newX, newY, newScale) {
+            const s = newScale !== undefined ? newScale : scale;
+            let nX = newX !== undefined ? newX : view.x;
+            let nY = newY !== undefined ? newY : view.y;
+            const scaledWidth = mapImage.offsetWidth * s;
+            const scaledHeight = mapImage.offsetHeight * s;
+            const viewportWidth = mapContainer.clientWidth;
+            const viewportHeight = mapContainer.clientHeight;
+            let minX, maxX, minY, maxY;
+            if (scaledWidth > viewportWidth) {
+                minX = viewportWidth - scaledWidth;
+                maxX = 0;
+            } else {
+                minX = 0;
+                maxX = viewportWidth - scaledWidth;
+            }
+            if (scaledHeight > viewportHeight) {
+                minY = viewportHeight - scaledHeight;
+                maxY = 0;
+            } else {
+                minY = 0;
+                maxY = viewportHeight - scaledHeight;
+            }
+            view.x = Math.max(minX, Math.min(nX, maxX));
+            view.y = Math.max(minY, Math.min(nY, maxY));
+            if (newScale !== undefined) {
+                scale = s;
+            }
+            applyTransform();
+        }
+        function applyTransform() {
+            transformWrapper.style.transform = `translate(${view.x}px, ${view.y}px) scale(${scale})`;
+        }
+        function resetTransform() {
+            scale = 1;
+            view.x = 0;
+            view.y = 0;
+            setTransform(0, 0, 1);
+        }
+        function getPinchDistance(touches) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        function convertPixelToGeo(pixelX, pixelY) {
+            const deltaLon = (pixelX - P1_PIXEL.x) / lonScale;
+            const deltaLat = (pixelY - P1_PIXEL.y) / latScale;
+            const geoLon = P1_GEO.lon + deltaLon;
+            const geoLat = P1_GEO.lat + deltaLat;
+            return { lat: geoLat, lon: geoLon };
+        }
+
+        function convertGeoToPixel(userLat, userLon) {
+            const deltaLon = userLon - P1_GEO.lon;
+            const deltaLat = userLat - P1_GEO.lat;
+            const pixelX = P1_PIXEL.x + (deltaLon * lonScale);
+            const pixelY = P1_PIXEL.y + (deltaLat * latScale);
+            return { x: pixelX, y: pixelY };
+        }
+
+        function updateUserLocation(lat, lon) {
+            currentUserLocation = { lat, lon };
+            if (originalImageWidth === 0) return; 
+            const basePixelCoords = convertGeoToPixel(lat, lon);
+            const currentImageWidth = mapImage.offsetWidth;
+            const currentImageHeight = mapImage.offsetHeight;
+            const widthRatio = currentImageWidth / originalImageWidth;
+            const heightRatio = currentImageHeight / originalImageHeight;
+            const finalX = (basePixelCoords.x * NODE_SCALE_FACTOR) * widthRatio;
+            const finalY = (basePixelCoords.y * NODE_SCALE_FACTOR) * heightRatio;
+            console.log(`User location updated to (${lat}, ${lon}) -> (pixel: ${finalX.toFixed(2)}, ${finalY.toFixed(2)})`);
+            const mapMinX = 0;
+            const mapMaxX = currentImageWidth;
+            const mapMinY = 0;
+            const mapMaxY = currentImageHeight;
+            const padding = 8; 
+            const isOnMap = (finalX > mapMinX && finalX < mapMaxX && finalY > mapMinY && finalY < mapMaxY);
+            let markerX, markerY, rotationDeg;
+            if (isOnMap) {
+                markerX = finalX;
+                markerY = finalY;
+                rotationDeg = 0; 
+            } else {
+                markerX = Math.max(mapMinX + padding, Math.min(finalX, mapMaxX - padding));
+                markerY = Math.max(mapMinY + padding, Math.min(finalY, mapMaxY - padding));
+                const mapCenterX = mapMaxX / 2;
+                const mapCenterY = mapMaxY / 2;
+                const dx = finalX - mapCenterX;
+                const dy = finalY - mapCenterY;
+                const angleRad = Math.atan2(dy, dx);
+                rotationDeg = angleRad * (180 / Math.PI) + 90; 
+            }
+            userLocationMarker.style.left = `${markerX}px`;
+            userLocationMarker.style.top = `${markerY}px`;
+            userLocationMarker.style.transform = `translate(-50%, -50%) rotate(${rotationDeg}deg)`;
+            userLocationMarker.style.display = 'block';
+        }
+        
+        // --- selectAndCenterOnNode is now only for single-node display/zoom (e.g., clicking on a node) ---
+        function selectAndCenterOnNode(node) {
+            if (!node) return;
+            
+            // Clear all non-persistent highlights
+            document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
+            document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
+            
+            // NEW: Clear persistent route visibility
+            document.querySelectorAll('.node.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
+            document.querySelectorAll('.node-label.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
+
+            
+            const newNodeElement = document.querySelector(`.node[data-id="${node.id}"]`);
+            const newLabelElement = document.querySelector(`.node-label[data-id="${node.id}"]`);
+            
+            // Apply new selection highlight and route visibility
+            if (newNodeElement) {
+                newNodeElement.classList.add('selected');
+                newNodeElement.classList.add('route-node-visible'); 
+            }
+            if (newLabelElement) {
+                newLabelElement.classList.add('selected');
+                newLabelElement.classList.add('route-node-visible'); 
+            }
+            
+            console.log(`Selected node: ${node.name} (ID: ${node.id})`);
+            
+            // Update the currently selected node for the info box
+            currentlySelectedNode = node;
+            
+            const currentImageWidth = mapImage.offsetWidth;
+            const currentImageHeight = mapImage.offsetHeight;
+            const widthRatio = currentImageWidth / originalImageWidth;
+            const heightRatio = currentImageHeight / originalImageHeight;
+            const nodeX = (node.x * NODE_SCALE_FACTOR) * widthRatio;
+            const nodeY = (node.y * NODE_SCALE_FACTOR) * heightRatio;
+            
+            // Zoom target
+            const zoomScale = 3.0;
+            const newViewX = (mapContainer.clientWidth / 2) - (nodeX * zoomScale);
+            const newViewY = (mapContainer.clientHeight / 2) - (nodeY * zoomScale);
+            
+            // Pass the zoomScale as the targetScale to the animation function
+            animatePanToTarget(newViewX, newViewY, zoomScale); 
+            
+            // Show the info display box
+            nodeNameDisplay.textContent = node.name;
+            nodeInfoDisplay.style.display = 'flex';
+        }
+        
+        // Helper to clear the node selection and hide the info box
+        function clearNodeSelection() {
+            // Clear transient highlights/selections
+            document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
+            document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
+            
+            // Clear persistent route visibility
+            document.querySelectorAll('.node.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
+            document.querySelectorAll('.node-label.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
+
+            currentlySelectedNode = null;
+            nodeInfoDisplay.style.display = 'none';
+            // NEW: Hide the clear route button and show the search button
+            document.body.removeAttribute('data-route-active');
+
+            // --- ADDED ---
+            currentPath = [];
+            if (pathSvg) {
+                pathSvg.innerHTML = '';
+            }
+            // --- END ADDED ---
+        }
+        
+        closeInfoBtn.addEventListener('click', clearNodeSelection);
+        // NEW: Clear Route Button Listener
+        clearRouteBtn.addEventListener('click', clearNodeSelection);
+
+
+        function panToLocation(lat, lon) {
+            if (originalImageWidth === 0) return; 
+            const basePixelCoords = convertGeoToPixel(lat, lon);
+            const currentImageWidth = mapImage.offsetWidth;
+            const currentImageHeight = mapImage.offsetHeight;
+            const widthRatio = currentImageWidth / originalImageWidth;
+            const heightRatio = currentImageHeight / originalImageHeight;
+            const worldX = (basePixelCoords.x * NODE_SCALE_FACTOR) * widthRatio;
+            const worldY = (basePixelCoords.y * NODE_SCALE_FACTOR) * heightRatio;
+            const newViewX = (mapContainer.clientWidth / 2) - (worldX * scale);
+            const newViewY = (mapContainer.clientHeight / 2) - (worldY * scale);
+
+            animatePanToTarget(newViewX, newViewY); 
+        }
+
+        centerUserBtn.addEventListener('click', () => {
+            if (currentUserLocation) {
+                // Reset zoom to 1 when centering on user location
+                targetScale = 1; 
+                panToLocation(currentUserLocation.lat, currentUserLocation.lon);
+            } else {
+                console.warn("No user location to center on.");
+            }
+        });
+
+        function distanceSq(p1, p2) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            return dx * dx + dy * dy;
+        }
+
+        function getClosestNodeInList(location, nodesList) {
+            let minDistanceSq = Infinity;
+            let closestNode = null;
+
+            if (!nodesList || nodesList.length === 0) return null;
+
+            const userPixel = convertGeoToPixel(location.lat, location.lon);
+            
+            const scaledUserPixel = { 
+                x: userPixel.x * NODE_SCALE_FACTOR, 
+                y: userPixel.y * NODE_SCALE_FACTOR 
+            };
+            
+            nodesList.forEach(node => {
+                const nodePixel = { 
+                    x: node.x * NODE_SCALE_FACTOR, 
+                    y: node.y * NODE_SCALE_FACTOR 
+                };
+                const distSq = distanceSq(scaledUserPixel, nodePixel);
+
+                if (distSq < minDistanceSq) {
+                    minDistanceSq = distSq;
+                    closestNode = node;
+                }
+            });
+
+            return closestNode;
+        }
+
+        function findClosestNodeToUser() {
+            if (!currentUserLocation || !nodesData.nodes.length) {
+                return null;
+            }
+
+            const closestNodeOnCampus = getClosestNodeInList(currentUserLocation, nodesData.nodes);
+
+            const ON_CAMPUS_DISTANCE_THRESHOLD_SQ = 30000; 
+            let userPixel = convertGeoToPixel(currentUserLocation.lat, currentUserLocation.lon);
+            let closestNodeBasePixel = closestNodeOnCampus ? { x: closestNodeOnCampus.x * NODE_SCALE_FACTOR, y: closestNodeOnCampus.y * NODE_SCALE_FACTOR } : null;
+            let actualDistanceSq = closestNodeBasePixel ? distanceSq({ x: userPixel.x * NODE_SCALE_FACTOR, y: userPixel.y * NODE_SCALE_FACTOR }, closestNodeBasePixel) : Infinity;
+
+            if (actualDistanceSq < ON_CAMPUS_DISTANCE_THRESHOLD_SQ) {
+                return closestNodeOnCampus;
+            } else {
+                const specialNodes = nodesData.nodes.filter(n => 
+                    n.name && (n.name.includes("Main Entrance") || n.name.includes("Back Gate"))
+                );
+                
+                if (specialNodes.length > 0) {
+                    return getClosestNodeInList(currentUserLocation, specialNodes);
+                }
+            }
+
+            return closestNodeOnCampus; 
+        }
+
+        // --- NEW: Graph & Pathfinding Functions ---
+
+        /**
+         * Creates the graph data structures (adjacency list and node map)
+         * from the loaded nodesData, now including edge weights.
+         */
+        function buildGraphDataStructures() {
+            nodeMap = {};
+            adjacencyList = {};
+
+            // Create a map for quick node lookups by ID
+            // and initialize the adjacency list
+            nodesData.nodes.forEach(node => {
+                nodeMap[node.id] = node;
+                adjacencyList[node.id] = [];
+            });
+
+            // Populate the adjacency list.
+            // We assume an undirected graph, so add edges in both directions.
+            nodesData.edges.forEach(edge => {
+                // Add edge from 'from' to 'to' with weight
+                adjacencyList[edge.from].push({ node: edge.to, weight: edge.weight });
+                // Add edge from 'to' to 'from' with weight
+                adjacencyList[edge.to].push({ node: edge.from, weight: edge.weight });
+            });
+            console.log("Graph data structures built (with weights).");
+        }
+
+        /**
+         * Creates an SVG overlay inside the transformWrapper to draw paths on.
+         */
+        function createPathSvgOverlay() {
+            if (document.getElementById('path-svg')) return; // Already created
+
+            pathSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            pathSvg.id = 'path-svg';
+            pathSvg.style.position = 'absolute';
+            pathSvg.style.top = '0';
+            pathSvg.style.left = '0';
+            pathSvg.style.width = '100%'; // Will match the image width
+            pathSvg.style.height = '100%'; // Will match the image height
+            pathSvg.style.pointerEvents = 'none'; // CRITICAL: allows clicks to pass through
+            pathSvg.style.zIndex = '5'; // Above image, below nodes
+            
+            // Prepend it so nodes are drawn on top
+            transformWrapper.prepend(pathSvg); 
+            console.log("SVG overlay created.");
+        }
+
+        /**
+         * Implements Dijkstra's algorithm to find the shortest path using edge weights.
+         * @param {number} startId - The ID of the starting node.
+         * @param {number} endId - The ID of the destination node.
+         * @returns {number[] | null} An array of node IDs representing the path, or null if no path is found.
+         */
+        function findPathDijkstra(startId, endId) {
+            // A simple Priority Queue implementation using an array
+            // Stores { id, distance }
+            let queue = [];
+            queue.push({ id: startId, distance: 0 });
+
+            // distances map: { nodeId: shortestDistance }
+            let distances = {};
+            // parentMap: { childId: parentId }
+            let parentMap = {};
+            
+            // Initialize distances for all nodes
+            nodesData.nodes.forEach(node => {
+                distances[node.id] = Infinity;
+                parentMap[node.id] = null;
+            });
+            
+            // The distance to the start node is 0
+            distances[startId] = 0;
+
+            let pathFound = false;
+
+            while (queue.length > 0) {
+                // Sort queue to get the node with the smallest distance (this is the "priority")
+                queue.sort((a, b) => a.distance - b.distance);
+                const { id: currentId, distance: currentDistance } = queue.shift();
+
+                // If this node's distance is already greater than a known shorter path, skip it
+                if (currentDistance > distances[currentId]) {
+                    continue;
+                }
+                
+                // If we reached the end, we're done
+                if (currentId === endId) {
+                    pathFound = true;
+                    break;
+                }
+
+                const neighbors = adjacencyList[currentId];
+                if (neighbors) {
+                    // Check all neighbors of the current node
+                    for (const neighbor of neighbors) {
+                        const neighborId = neighbor.node;
+                        const weight = neighbor.weight;
+                        
+                        // The new distance to this neighbor is our current path's cost + the edge weight
+                        const newDistance = currentDistance + weight;
+
+                        // If we found a shorter path to this neighbor...
+                        if (newDistance < distances[neighborId]) {
+                            // ...update its distance, set its parent, and add it to the queue
+                            distances[neighborId] = newDistance;
+                            parentMap[neighborId] = currentId;
+                            queue.push({ id: neighborId, distance: newDistance });
+                        }
+                    }
+                }
+            }
+
+            if (!pathFound) {
+                return null; // No path
+            }
+
+            // Reconstruct path by backtracking from the end node
+            const path = [];
+            let current = endId;
+            while (current !== null) {
+                path.unshift(current); // Add to the front
+                current = parentMap[current];
+            }
+            
+            return (path[0] === startId) ? path : null;
+        }
+
+        /**
+         * Draws the given path on the SVG overlay.
+         * @param {number[]} pathNodeIds - An array of node IDs.
+         */
+        function drawPath(pathNodeIds) {
+            if (!pathSvg || !originalImageWidth || pathNodeIds.length < 2) {
+                return;
+            }
+
+            pathSvg.innerHTML = ''; // Clear previous path
+            
+            // Get current dimensions and ratios
+            const currentImageWidth = mapImage.offsetWidth;
+            const currentImageHeight = mapImage.offsetHeight;
+            const widthRatio = currentImageWidth / originalImageWidth;
+            const heightRatio = currentImageHeight / originalImageHeight;
+
+            for (let i = 0; i < pathNodeIds.length - 1; i++) {
+                const nodeA = nodeMap[pathNodeIds[i]];
+                const nodeB = nodeMap[pathNodeIds[i+1]];
+
+                if (!nodeA || !nodeB) continue; // Safety check
+
+                // Calculate scaled coordinates just like the nodes
+                const x1 = (nodeA.x * NODE_SCALE_FACTOR) * widthRatio;
+                const y1 = (nodeA.y * NODE_SCALE_FACTOR) * heightRatio;
+                const x2 = (nodeB.x * NODE_SCALE_FACTOR) * widthRatio;
+                const y2 = (nodeB.y * NODE_SCALE_FACTOR) * heightRatio;
+
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('stroke', 'yellow');
+                line.setAttribute('stroke-width', '5'); // Make it thick and visible
+                line.setAttribute('stroke-linecap', 'round');
+                // Add a shadow for better visibility on light parts of the map
+                line.style.filter = 'drop-shadow(0 0 3px rgba(0,0,0,0.8))'; 
+
+                pathSvg.appendChild(line);
+            }
+        }
+
+
+        function openModal(destinationNode = null) {
+            routeModal.style.display = 'flex';
+            setTimeout(() => {
+                routeModal.classList.add('open');
+            }, 10); 
+            // Reset fields
+            fromInput.value = '';
+            toInput.value = '';
+            selectedFromNode = null;
+            selectedToNode = null;
+            resultsFrom.innerHTML = '';
+            resultsTo.innerHTML = '';
+            resultsFrom.style.display = 'none';
+            resultsTo.style.display = 'none';
+            fromError.style.display = 'none';
+            toError.style.display = 'none';
+            
+            // Clear all highlights when opening the modal
+            // We call the full clear function because opening the modal should always reset the map view
+            clearNodeSelection();
+            
+            // Set Default 'From' Location (User Location Logic)
+            const defaultFromNode = findClosestNodeToUser();
+            if (defaultFromNode) {
+                selectedFromNode = defaultFromNode;
+                fromInput.value = defaultFromNode.name + ' (user location)';
+            }
+            
+            // Set 'To' Location if provided (from the 'Get Directions' button)
+            if (destinationNode) {
+                selectedToNode = destinationNode;
+                toInput.value = destinationNode.name;
+            }
+        }
+
+        function closeModal() {
+            routeModal.classList.remove('open');
+            setTimeout(() => {
+                routeModal.style.display = 'none';
+            }, 300); 
+        }
+        
+        // Helper to normalize the input value by removing the suffix
+        const USER_LOCATION_SUFFIX = ' (user location)';
+        function normalizeInput(value) {
+            let normalized = value.toLowerCase().trim();
+            if (normalized.endsWith(USER_LOCATION_SUFFIX.toLowerCase())) {
+                normalized = normalized.slice(0, normalized.length - USER_LOCATION_SUFFIX.length).trim();
+            }
+            return normalized;
+        }
+        
+        // Helper to determine if the current selection is based on the user's location (i.e., has the suffix)
+        function isUserLocationSelection(inputValue) {
+            return inputValue.toLowerCase().trim().endsWith(USER_LOCATION_SUFFIX.toLowerCase());
+        }
+
+        // --- EVENT LISTENERS ---
+        searchButton.addEventListener('click', () => openModal(null)); // Open modal without pre-selecting 'to'
+        closeModalBtn.addEventListener('click', closeModal);
+        
+        // Get Directions button handler
+        getDirectionsBtn.addEventListener('click', () => {
+            if (currentlySelectedNode) {
+                openModal(currentlySelectedNode);
+            }
+        });
+        
+        // --- Drag/Select Fix and Modal Close Logic ---
+        modalContent.addEventListener('mousedown', () => {
+            isDraggingText = false; 
+        });
+        
+        modalContent.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) { 
+                isDraggingText = true;
+            }
+        });
+        
+        modalContent.addEventListener('touchstart', () => {
+            isDraggingText = false;
+        });
+        modalContent.addEventListener('touchmove', () => {
+            isDraggingText = true;
+        });
+
+        routeModal.addEventListener('click', (e) => {
+            if (e.target === routeModal && !isDraggingText) {
+                closeModal(); 
+            }
+            isDraggingText = false;
+        });
+
+        // --- MODIFIED: handleRouteSearch to find and draw path ---
+        function handleRouteSearch() {
+            let isValid = true;
+            fromError.style.display = 'none';
+            toError.style.display = 'none';
+            
+            const normalizedFromInput = normalizeInput(fromInput.value);
+            const normalizedToInput = normalizeInput(toInput.value);
+            const selectedFromName = selectedFromNode ? selectedFromNode.name.toLowerCase().trim() : '';
+            const selectedToName = selectedToNode ? selectedToNode.name.toLowerCase().trim() : '';
+
+            if (!selectedFromNode || normalizedFromInput !== selectedFromName) {
+                fromError.innerText = 'Please select a valid starting location from the list.';
+                fromError.style.display = 'block';
+                isValid = false;
+            }
+
+            if (!selectedToNode || normalizedToInput !== selectedToName) {
+                toError.innerText = 'Please select a valid destination from the list.';
+                toError.style.display = 'block';
+                isValid = false;
+            }
+            
+            if (isValid && selectedFromNode.id === selectedToNode.id) {
+                fromError.innerText = 'Start and destination locations cannot be the same.';
+                fromError.style.display = 'block';
+                isValid = false;
+            }
+
+            if (isValid) {
+                console.log(`Starting route search from ${selectedFromNode.name} (ID: ${selectedFromNode.id}) to ${selectedToNode.name} (ID: ${selectedToNode.id}).`);
+                
+                // --- 1. PERFORM PATHFINDING ---
+                const path = findPathDijkstra(selectedFromNode.id, selectedToNode.id);
+
+                if (!path) {
+                    console.error("No path found between nodes.");
+                    currentPath = []; // Clear any old path
+                    if (pathSvg) pathSvg.innerHTML = ''; // Clear lines
+                    // Show error in modal instead of alert
+                    toError.innerText = 'A path could not be found to that location.';
+                    toError.style.display = 'block';
+                    return; // Stop, leave modal open
+                }
+
+                console.log("Path found:", path);
+                currentPath = path; // Save for resizing
+                drawPath(currentPath); // Draw yellow lines
+
+                // --- 2. APPLY PERSISTENT VISIBILITY (Red Circles) ---
+                
+                // Highlight all nodes in the path
+                path.forEach(nodeId => {
+                    const nodeEl = document.querySelector(`.node[data-id="${nodeId}"]`);
+                    const labelEl = document.querySelector(`.node-label[data-id="${nodeId}"]`);
+
+                    if (nodeEl) {
+                        nodeEl.classList.add('selected', 'route-node-visible');
+                    }
+                    
+                    // Only show the label for the *final* destination
+                    if (labelEl && nodeId === selectedToNode.id) {
+                         labelEl.classList.add('selected', 'route-node-visible'); 
+                    }
+                });
+                
+                // --- 3. ZOOM OUT AND CENTER (Reset Zoom to 1.0) ---
+                const currentImageWidth = mapImage.offsetWidth;
+                const currentImageHeight = mapImage.offsetHeight;
+                const widthRatio = currentImageWidth / originalImageWidth;
+                const heightRatio = currentImageHeight / originalImageHeight;
+                
+                const nodeX1 = (selectedFromNode.x * NODE_SCALE_FACTOR) * widthRatio;
+                const nodeY1 = (selectedFromNode.y * NODE_SCALE_FACTOR) * heightRatio;
+                const nodeX2 = (selectedToNode.x * NODE_SCALE_FACTOR) * widthRatio;
+                const nodeY2 = (selectedToNode.y * NODE_SCALE_FACTOR) * heightRatio;
+                
+                // Calculate midpoint in current pixel space (scale = 1)
+                const midX = (nodeX1 + nodeX2) / 2;
+                const midY = (nodeY1 + nodeY2) / 2;
+
+                const zoomScale = 1.0; 
+
+                // Calculate view center based on midpoint and zoom level
+                const newViewX = (mapContainer.clientWidth / 2) - (midX * zoomScale);
+                const newViewY = (mapContainer.clientHeight / 2) - (midY * zoomScale);
+                
+                currentlySelectedNode = selectedToNode; // Keep 'to' node as the context
+                
+                animatePanToTarget(newViewX, newViewY, zoomScale); 
+                
+                // NEW: Show the clear route button
+                document.body.setAttribute('data-route-active', 'true');
+                
+                closeModal();
+            }
+        }
+        
+        routeSearchBtn.addEventListener('click', handleRouteSearch);
+
+        function handleAutocomplete(inputElement, resultsElement, isFromInput) {
+            const rawQuery = inputElement.value;
+            const query = normalizeInput(rawQuery); 
+            resultsElement.innerHTML = ''; 
+            resultsElement.style.display = 'none';
+            
+            const selectedNode = isFromInput ? selectedFromNode : selectedToNode;
+            const selectedError = isFromInput ? fromError : toError;
+            
+            if (selectedNode && query !== selectedNode.name.toLowerCase().trim()) {
+                if (isFromInput && rawQuery.toLowerCase().trim() === (selectedNode.name + USER_LOCATION_SUFFIX).toLowerCase().trim()) {
+                    // If it's the 'from' input and the user hasn't modified the full default text, keep it selected
+                } else {
+                    if (isFromInput) {
+                        selectedFromNode = null;
+                    } else {
+                        selectedToNode = null;
+                    }
+                    selectedError.style.display = 'none'; 
+                }
+            }
+
+
+            if (query.length < 1) { 
+                return;
+            }
+
+            const matchingNodes = nodesData.nodes.filter(node => 
+                node.name && node.name.toLowerCase().includes(query)
+            );
+
+            if (matchingNodes.length === 0) {
+                return;
+            }
+
+            matchingNodes.forEach(node => {
+                const item = document.createElement('div');
+                item.className = 'search-result-item';
+                item.innerText = node.name;
+                item.addEventListener('click', () => {
+                    inputElement.value = node.name;
+                    resultsElement.style.display = 'none';
+                    if (isFromInput) {
+                        selectedFromNode = node;
+                        fromError.style.display = 'none';
+                    } else {
+                        selectedToNode = node;
+                        toError.style.display = 'none';
+                    }
+                });
+                resultsElement.appendChild(item);
+            });
+            
+            if (resultsElement.children.length > 0) {
+                resultsElement.style.display = 'block'; 
+            }
+        }
+        
+        fromInput.addEventListener('input', () => handleAutocomplete(fromInput, resultsFrom, true));
+        toInput.addEventListener('input', () => handleAutocomplete(toInput, resultsTo, false));
+        
+        // --- FIX: Prevent accidental modal close on autocomplete item click ---
+        fromInput.addEventListener('blur', () => {
+            // Use a simple timeout to hide the results.
+            // This delay allows the 'click' event on a result item to fire
+            // before the list is hidden, preventing a race condition where
+            // the click registers on the modal overlay instead.
+            setTimeout(() => {
+                resultsFrom.style.display = 'none';
+            }, 150); // Increased timeout to 150ms to be safe
+        });
+        
+        toInput.addEventListener('blur', () => {
+             // Use a simple timeout to hide the results.
+            setTimeout(() => {
+                resultsTo.style.display = 'none';
+            }, 150); // Increased timeout to 150ms to be safe
+        });
+
+        fromInput.addEventListener('focus', () => {
+            if (fromInput.value.trim().length > 0) {
+                 handleAutocomplete(fromInput, resultsFrom, true);
+            }
+        });
+        toInput.addEventListener('focus', () => {
+            if (toInput.value.trim().length > 0) {
+                handleAutocomplete(toInput, resultsTo, false);
+            }
+        });
+
+        // --- NEW FIX: Prevent blur when clicking on the results list ---
+        // This stops the race condition. By preventing the default mousedown
+        // behavior on the results list, we stop the input field from
+        // firing its 'blur' event. This ensures the list doesn't disappear
+        // while the user is clicking an item or its scrollbar.
+        resultsFrom.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+        });
+        
+        resultsTo.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+        });
+        
+        // --- EXISTING PAN/ZOOM LOGIC (Unchanged) ---
+        mapContainer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isAnimatingPan = false; 
+            panning = true;
+            wasPanning = false; 
+            start.x = e.clientX - view.x;
+            start.y = e.clientY - view.y;
+            // Removed clearNodeSelection() here to allow persistent nodes to stay on click/drag
+        });
+        window.addEventListener('mouseup', (e) => {
+            panning = false;
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            if (!panning) return;
+            e.preventDefault();
+            isAnimatingPan = false; 
+            wasPanning = true; 
+            let newX = e.clientX - start.x;
+            let newY = e.clientY - start.y;
+            setTransform(newX, newY); 
+        });
+        mapContainer.addEventListener('wheel', (e) => {
+            e.preventDefault(); 
+            isAnimatingPan = false; 
+            
+            // Set the target scale based on wheel delta
+            const zoomFactor = 0.05; 
+            const delta = e.deltaY < 0 ? 1 : -1; 
+            targetScale = Math.max(0.5, Math.min(10, scale + delta * zoomFactor * scale)); 
+            
+            const rect = mapContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Calculate new view center based on targetScale
+            const worldX = (mouseX - view.x) / scale;
+            const worldY = (mouseY - view.y) / scale;
+            let newViewX = mouseX - worldX * targetScale;
+            let newViewY = mouseY - worldY * targetScale;
+            
+            // Start the smooth animation
+            animatePanToTarget(newViewX, newViewY, targetScale);
+            
+            // Allow persistent nodes to remain visible, do not call clearNodeSelection()
+        });
+
+        mapContainer.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isAnimatingPan = false; 
+            if (e.touches.length === 1) {
+                panning = true;
+                wasPanning = false; 
+                isPinching = false;
+                start.x = e.touches[0].clientX - view.x;
+                start.y = e.touches[0].clientY - view.y;
+                // Removed clearNodeSelection() here
+            } else if (e.touches.length === 2) {
+                panning = false;
+                isPinching = true;
+                initialPinchDistance = getPinchDistance(e.touches);
+                startScale = scale; 
+                targetScale = scale; // Initialize target scale for pinching
+                // Removed clearNodeSelection() here
+            }
+        });
+        window.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                isPinching = false;
+            }
+            if (e.touches.length < 1) {
+                panning = false;
+            }
+        });
+        
+        window.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (panning && e.touches.length === 1) {
+                isAnimatingPan.false; 
+                wasPanning = true; 
+                let newX = e.touches[0].clientX - start.x;
+                let newY = e.touches[0].clientY - start.y;
+                setTransform(newX, newY); 
+            } else if (isPinching && e.touches.length === 2) {
+                isAnimatingPan = false; 
+                const rect = mapContainer.getBoundingClientRect();
+                const pinchCenterX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
+                const pinchCenterY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+                const worldX = (pinchCenterX - view.x) / scale;
+                const worldY = (pinchCenterY - view.y) / scale;
+                const currentDistance = getPinchDistance(e.touches);
+                
+                // Calculate the new scale (instant update for pinch)
+                const scaleFactor = currentDistance / initialPinchDistance;
+                const newScale = Math.max(0.5, Math.min(10, startScale * scaleFactor)); 
+                
+                // Set the current scale and target scale
+                scale = newScale;
+                targetScale = newScale;
+                
+                let newViewX = pinchCenterX - worldX * newScale;
+                let newViewY = pinchCenterY - worldY * newScale;
+                
+                setTransform(newViewX, newViewY, newScale);
+            }
+        });
+        
+        // --- MODIFIED: mapContainer.addEventListener('click') - Snap to closest node ---
+        mapContainer.addEventListener('click', (e) => {
+            if (wasPanning || isPinching) {
+                wasPanning = false; 
+                return;
+            }
+            
+            // If a route is active, don't allow node clicks to overwrite it.
+            if (document.body.hasAttribute('data-route-active')) {
+                return;
+            }
+
+            const rect = mapContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const imageX = (mouseX - view.x) / scale;
+            const imageY = (mouseY - view.y) / scale;
+            let minDistanceSq = Infinity;
+            let closestNode = null;
+            const currentImageWidth = mapImage.offsetWidth;
+            const currentImageHeight = mapImage.offsetHeight;
+            const widthRatio = currentImageWidth / originalImageWidth;
+            const heightRatio = currentImageHeight / originalImageHeight;
+            if (originalImageWidth === 0) {
+                // Do not clear node selection here, as persistent nodes might be active
+                return;
+            }
+            
+            nodesData.nodes.forEach(node => {
+                const nodeRenderX = (node.x * NODE_SCALE_FACTOR) * widthRatio;
+                const nodeRenderY = (node.y * NODE_SCALE_FACTOR) * heightRatio;
+                const dx = imageX - nodeRenderX;
+                const dy = imageY - nodeRenderY;
+                const distanceSq = (dx * dx) + (dy * dy); 
+                if (distanceSq < minDistanceSq) {
+                    minDistanceSq = distanceSq;
+                    closestNode = node;
+                }
+            });
+            
+            // LOGIC: Always snap to the closest node
+            if (closestNode) {
+                // If the user clicks the currently selected node, clear it (toggle)
+                if (currentlySelectedNode && currentlySelectedNode.id === closestNode.id) {
+                    clearNodeSelection();
+                } else {
+                    // Select the new node, which also centers/zooms and displays the info box
+                    selectAndCenterOnNode(closestNode); 
+                }
+            } else {
+                // Clicked far from any node or no nodes exist
+                // Clear only the transient selection (info box), leave persistent nodes alone
+                document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
+                document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
+                currentlySelectedNode = null;
+                nodeInfoDisplay.style.display = 'none';
+            }
+        });
+
+    </script>
+</body>
+</html>
