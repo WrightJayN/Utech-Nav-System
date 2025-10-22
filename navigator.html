@@ -8,11 +8,15 @@
         /* --- NEW CSS STYLE INJECTION FOR FROM-HIGHLIGHT --- */
         .node.from-highlight {
             background-color: #007bff; /* Blue */
-            border: 2px solid #0056b3; /* Darker Blue Border */
+            border: 2px solid #0056b3; 
             box-shadow: 0 0 8px rgba(0, 123, 255, 0.8);
             width: 12px;
             height: 12px;
-            z-index: 15; /* Above default nodes */
+            z-index: 15;
+        }
+        /* Adding persistent visibility for route nodes */
+        .node.route-node-visible {
+            display: block !important;
         }
         /* --- EXISTING CSS STYLES --- */
         :root {
@@ -29,6 +33,8 @@
             --user-marker-color: #007aff;
             --primary-color: #007aff; 
             --primary-hover-color: #0056b3;
+            --danger-color: #dc3545; /* New: for the clear button */
+            --danger-hover-color: #c82333;
         }
         body[data-theme="dark"] {
             --bg-color: #1e1e1e;
@@ -44,6 +50,8 @@
             --user-marker-color: #007aff; 
             --primary-color: #007bff; 
             --primary-hover-color: #0056b3;
+            --danger-color: #dc3545;
+            --danger-hover-color: #c82333;
         }
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -99,7 +107,7 @@
             z-index: 10;
             border: 1px solid var(--node-darkred); 
             box-shadow: 0 0 5px rgba(255,0,0,0.5);
-            display: none; 
+            display: none; /* Base state is hidden */
             transition: filter 0.3s ease; 
         }
         body[data-theme="dark"] .node {
@@ -123,7 +131,14 @@
             background-color: rgba(43, 43, 43, 0.8);
             filter: invert(1) hue-rotate(180deg); 
         }
-        .node.selected,
+        /* New persistent visibility class */
+        .node.route-node-visible {
+            display: block !important;
+        }
+        /* Ensure selected/highlighted nodes are visible and labelled */
+        .node.selected {
+            display: block;
+        }
         .node-label.selected {
             display: block;
         }
@@ -144,7 +159,7 @@
         body[data-theme="dark"] .user-location-marker {
             filter: invert(1) hue-rotate(180deg); 
         }
-        /* MODIFIED SEARCH CONTAINER AND BUTTON STYLES */
+        /* Search container remains the same */
         #search-container {
             position: absolute;
             top: 15px;
@@ -155,8 +170,8 @@
         }
 
         #search-button {
-            padding: 8px 12px; /* Matches #get-directions-btn padding */
-            height: 44px; /* Matches theme toggle/center button height for visual consistency */
+            padding: 8px 12px; 
+            height: 44px;
             font-size: 16px;
             border: none;
             border-radius: 8px;
@@ -164,8 +179,8 @@
             background-color: var(--primary-color);
             color: var(--surface-color); 
             cursor: pointer;
-            width: auto; /* Let content size the button */
-            min-width: 150px; /* Ensure button isn't too small */
+            width: auto;
+            min-width: 150px;
             font-weight: 600;
             transition: background-color 0.2s ease, box-shadow 0.2s ease;
             outline: none;
@@ -322,7 +337,7 @@
             top: 15px;
             left: 15px;
             z-index: 30;
-            display: none; /* Initially hidden */
+            display: none; 
             background-color: var(--surface-color);
             border-radius: 8px;
             box-shadow: 0 4px 12px var(--shadow-color);
@@ -331,8 +346,8 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            height: 44px; /* Match the height of the Search button */
-            box-sizing: border-box; /* Include padding in height calculation */
+            height: 44px;
+            box-sizing: border-box; 
         }
         #node-name {
             flex-grow: 1;
@@ -352,7 +367,6 @@
             transition: background-color 0.2s ease;
             font-weight: 500;
             outline: none;
-            /* Ensure the Directions button height matches Search button height */
             height: 100%; 
         }
         #get-directions-btn {
@@ -370,6 +384,43 @@
             background-color: var(--border-color);
         }
         
+        /* --- NEW: Clear Route Button --- */
+        #clear-route-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 30;
+            display: none; /* Initially hidden */
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            background-color: var(--danger-color);
+            color: white;
+            cursor: pointer;
+            min-width: 150px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            gap: 5px;
+            transition: background-color 0.2s ease, opacity 0.2s ease;
+        }
+        #clear-route-btn:hover {
+            background-color: var(--danger-hover-color);
+        }
+        /* Hide search button when clear route is visible, and vice versa */
+        body:not([data-route-active]) #clear-route-btn { display: none; }
+        body[data-route-active] #search-container { display: none; }
+        body[data-route-active] #node-info-display { display: none; }
+        
+        /* If a node is selected but no route is active, show node info and hide search/clear */
+        body:not([data-route-active]) #node-info-display[style*="flex"] ~ #search-container { display: none; }
+        body:not([data-route-active]) #node-info-display[style*="flex"] ~ #clear-route-btn { display: none; }
+
+
         /* --- Existing CSS (Theme Toggle, Location Controls, Center Button) --- */
         #theme-toggle {
             position: absolute;
@@ -468,6 +519,11 @@
         <button id="search-button">Search for Route</button>
     </div>
 
+    <button id="clear-route-btn" aria-label="Clear current route">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        Clear Route
+    </button>
+
     <div id="node-info-display">
         <span id="node-name"></span>
         <button id="get-directions-btn">Get Directions</button>
@@ -536,11 +592,15 @@
         style.innerHTML = `
             .node.from-highlight {
                 background-color: #007bff; /* Blue */
-                border: 2px solid #0056b3; /* Darker Blue Border */
+                border: 2px solid #0056b3; 
                 box-shadow: 0 0 8px rgba(0, 123, 255, 0.8);
                 width: 12px;
                 height: 12px;
-                z-index: 15; /* Above default nodes */
+                z-index: 15;
+            }
+            /* Adding persistent visibility for route nodes */
+            .node.route-node-visible {
+                display: block !important;
             }
         `;
         document.head.appendChild(style);
@@ -575,6 +635,8 @@
         const nodeNameDisplay = document.getElementById('node-name');
         const getDirectionsBtn = document.getElementById('get-directions-btn');
         const closeInfoBtn = document.getElementById('close-info-btn');
+        // NEW: Clear Route Button
+        const clearRouteBtn = document.getElementById('clear-route-btn');
 
 
         // --- EXISTING VARIABLES ---
@@ -725,6 +787,12 @@
                     latSlider.value = initialLat;
                     lonSlider.value = initialLon;
                     handleSliderChange(); 
+                    
+                    // FIX: Ensure search button is visible by hiding the node info box initially
+                    nodeInfoDisplay.style.display = 'none';
+                    // Ensure route is inactive on load
+                    document.body.removeAttribute('data-route-active');
+
                 })
                 .catch(error => {
                     console.error('Error loading page resources:', error);
@@ -887,20 +955,31 @@
             userLocationMarker.style.display = 'block';
         }
         
-        // --- MODIFIED: selectAndCenterOnNode to only set the target scale ---
+        // --- selectAndCenterOnNode is now only for single-node display/zoom (e.g., clicking on a node) ---
         function selectAndCenterOnNode(node) {
             if (!node) return;
             
-            // Clear any old highlights (selected, from-highlight)
+            // Clear all non-persistent highlights
             document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
             document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
+            
+            // NEW: Clear persistent route visibility
+            document.querySelectorAll('.node.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
+            document.querySelectorAll('.node-label.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
+
             
             const newNodeElement = document.querySelector(`.node[data-id="${node.id}"]`);
             const newLabelElement = document.querySelector(`.node-label[data-id="${node.id}"]`);
             
-            // Apply new selection highlight
-            if (newNodeElement) newNodeElement.classList.add('selected');
-            if (newLabelElement) newLabelElement.classList.add('selected');
+            // Apply new selection highlight and route visibility
+            if (newNodeElement) {
+                newNodeElement.classList.add('selected');
+                newNodeElement.classList.add('route-node-visible'); 
+            }
+            if (newLabelElement) {
+                newLabelElement.classList.add('selected');
+                newLabelElement.classList.add('route-node-visible'); 
+            }
             
             console.log(`Selected node: ${node.name} (ID: ${node.id})`);
             
@@ -929,13 +1008,24 @@
         
         // Helper to clear the node selection and hide the info box
         function clearNodeSelection() {
+            // Clear transient highlights/selections
             document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
             document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
+            
+            // Clear persistent route visibility
+            document.querySelectorAll('.node.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
+            document.querySelectorAll('.node-label.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
+
             currentlySelectedNode = null;
             nodeInfoDisplay.style.display = 'none';
+            // NEW: Hide the clear route button and show the search button
+            document.body.removeAttribute('data-route-active');
         }
         
         closeInfoBtn.addEventListener('click', clearNodeSelection);
+        // NEW: Clear Route Button Listener
+        clearRouteBtn.addEventListener('click', clearNodeSelection);
+
 
         function panToLocation(lat, lon) {
             if (originalImageWidth === 0) return; 
@@ -1116,7 +1206,7 @@
             isDraggingText = false;
         });
 
-        // --- handleRouteSearch ---
+        // --- MODIFIED: handleRouteSearch to apply persistent visibility AND zoom out ---
         function handleRouteSearch() {
             let isValid = true;
             fromError.style.display = 'none';
@@ -1153,15 +1243,62 @@
             if (isValid) {
                 console.log(`Starting route search from ${selectedFromNode.name} (ID: ${selectedFromNode.id}) to ${selectedToNode.name} (ID: ${selectedToNode.id}).`);
                 
-                // 1. Highlight the destination node (selectedToNode) and center/zoom
-                selectAndCenterOnNode(selectedToNode); 
-
-                // 2. Highlight the starting node (selectedFromNode) if it's NOT the user's current location
+                // --- GET NODE ELEMENTS ---
                 const fromNodeElement = document.querySelector(`.node[data-id="${selectedFromNode.id}"]`);
-                if (fromNodeElement && !isUserLocationSelection(fromInput.value)) {
-                    // Apply blue highlight for the manually selected 'From' node
-                    fromNodeElement.classList.add('from-highlight');
+                const fromLabelElement = document.querySelector(`.node-label[data-id="${selectedFromNode.id}"]`);
+                const toNodeElement = document.querySelector(`.node[data-id="${selectedToNode.id}"]`);
+                const toLabelElement = document.querySelector(`.node-label[data-id="${selectedToNode.id}"]`);
+                
+                // --- 1. APPLY PERSISTENT VISIBILITY (Red Circles) ---
+                
+                // Apply 'selected' and 'route-node-visible' to the 'from' node
+                if (fromNodeElement) {
+                    fromNodeElement.classList.add('selected', 'route-node-visible');
                 }
+                // Ensure the label for 'from' is hidden
+                if (fromLabelElement) {
+                    fromLabelElement.classList.remove('selected'); 
+                    fromLabelElement.classList.add('route-node-visible'); // We want it hidden, but we need route-node-visible on it for cleanup
+                }
+
+                // Apply 'selected' and 'route-node-visible' to the 'to' node
+                if (toNodeElement) {
+                    toNodeElement.classList.add('selected', 'route-node-visible');
+                }
+                // Ensure the label for 'to' is visible (using 'selected' which implies route-node-visible)
+                if (toLabelElement) {
+                    toLabelElement.classList.add('selected', 'route-node-visible'); 
+                }
+                
+                // --- 2. ZOOM OUT AND CENTER (Reset Zoom to 1.0) ---
+                
+                const currentImageWidth = mapImage.offsetWidth;
+                const currentImageHeight = mapImage.offsetHeight;
+                const widthRatio = currentImageWidth / originalImageWidth;
+                const heightRatio = currentImageHeight / originalImageHeight;
+                
+                const nodeX1 = (selectedFromNode.x * NODE_SCALE_FACTOR) * widthRatio;
+                const nodeY1 = (selectedFromNode.y * NODE_SCALE_FACTOR) * heightRatio;
+                const nodeX2 = (selectedToNode.x * NODE_SCALE_FACTOR) * widthRatio;
+                const nodeY2 = (selectedToNode.y * NODE_SCALE_FACTOR) * heightRatio;
+                
+                // Calculate midpoint in current pixel space (scale = 1)
+                const midX = (nodeX1 + nodeX2) / 2;
+                const midY = (nodeY1 + nodeY2) / 2;
+
+                // FIX: Reset zoom fully to 1.0
+                const zoomScale = 1.0; 
+
+                // Calculate view center based on midpoint and zoom level
+                const newViewX = (mapContainer.clientWidth / 2) - (midX * zoomScale);
+                const newViewY = (mapContainer.clientHeight / 2) - (midY * zoomScale);
+                
+                currentlySelectedNode = selectedToNode; // Keep 'to' node as the context
+                
+                animatePanToTarget(newViewX, newViewY, zoomScale); 
+                
+                // NEW: Show the clear route button
+                document.body.setAttribute('data-route-active', 'true');
                 
                 // TODO: Implement Dijkstra/A* pathfinding here.
                 
@@ -1266,7 +1403,7 @@
             wasPanning = false; 
             start.x = e.clientX - view.x;
             start.y = e.clientY - view.y;
-            clearNodeSelection(); // Clear selection on pan/drag start
+            // Removed clearNodeSelection() here to allow persistent nodes to stay on click/drag
         });
         window.addEventListener('mouseup', (e) => {
             panning = false;
@@ -1303,10 +1440,7 @@
             // Start the smooth animation
             animatePanToTarget(newViewX, newViewY, targetScale);
             
-            // Clear selection if user zooms
-            if (currentlySelectedNode) {
-                 clearNodeSelection();
-            }
+            // Allow persistent nodes to remain visible, do not call clearNodeSelection()
         });
 
         mapContainer.addEventListener('touchstart', (e) => {
@@ -1318,14 +1452,14 @@
                 isPinching = false;
                 start.x = e.touches[0].clientX - view.x;
                 start.y = e.touches[0].clientY - view.y;
-                clearNodeSelection(); // Clear selection on pan/drag start
+                // Removed clearNodeSelection() here
             } else if (e.touches.length === 2) {
                 panning = false;
                 isPinching = true;
                 initialPinchDistance = getPinchDistance(e.touches);
                 startScale = scale; 
                 targetScale = scale; // Initialize target scale for pinching
-                clearNodeSelection(); // Clear selection on pinch start
+                // Removed clearNodeSelection() here
             }
         });
         window.addEventListener('touchend', (e) => {
@@ -1388,7 +1522,7 @@
             const widthRatio = currentImageWidth / originalImageWidth;
             const heightRatio = currentImageHeight / originalImageHeight;
             if (originalImageWidth === 0) {
-                clearNodeSelection(); 
+                // Do not clear node selection here, as persistent nodes might be active
                 return;
             }
             
@@ -1415,10 +1549,12 @@
                 }
             } else {
                 // Clicked far from any node or no nodes exist
-                clearNodeSelection();
+                // Clear only the transient selection (info box), leave persistent nodes alone
+                document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
+                document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
+                currentlySelectedNode = null;
+                nodeInfoDisplay.style.display = 'none';
             }
         });
 
     </script>
-    </body> 
-</html>
