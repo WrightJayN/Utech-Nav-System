@@ -1258,7 +1258,7 @@
                 // Ensure the label for 'from' is hidden
                 if (fromLabelElement) {
                     fromLabelElement.classList.remove('selected'); 
-                    fromLabelElement.classList.add('route-node-visible'); // We want it hidden, but we need route-node-visible on it for cleanup
+                    fromLabelElement.classList.add('route-node-visible'); 
                 }
 
                 // Apply 'selected' and 'route-node-visible' to the 'to' node
@@ -1369,19 +1369,23 @@
         fromInput.addEventListener('input', () => handleAutocomplete(fromInput, resultsFrom, true));
         toInput.addEventListener('input', () => handleAutocomplete(toInput, resultsTo, false));
         
+        // --- FIX: Prevent accidental modal close on autocomplete item click ---
         fromInput.addEventListener('blur', () => {
-            setTimeout(() => {
-                if (!resultsFrom.contains(document.activeElement)) {
+            // Check if the related target (where focus is moving) is within the results container
+            if (!resultsFrom.contains(document.activeElement)) {
+                setTimeout(() => {
                     resultsFrom.style.display = 'none';
-                }
-            }, 100);
+                }, 100);
+            }
         });
+        
         toInput.addEventListener('blur', () => {
-            setTimeout(() => {
-                if (!resultsTo.contains(document.activeElement)) {
+             // Check if the related target (where focus is moving) is within the results container
+             if (!resultsTo.contains(document.activeElement)) {
+                setTimeout(() => {
                     resultsTo.style.display = 'none';
-                }
-            }, 100);
+                }, 100);
+            }
         });
 
         fromInput.addEventListener('focus', () => {
@@ -1510,6 +1514,11 @@
                 return;
             }
             
+            // If a route is active, don't allow node clicks to overwrite it.
+            if (document.body.hasAttribute('data-route-active')) {
+                return;
+            }
+
             const rect = mapContainer.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
