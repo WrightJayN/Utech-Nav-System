@@ -421,7 +421,7 @@
         body:not([data-route-active]) #node-info-display[style*="flex"] ~ #clear-route-btn { display: none; }
 
 
-        /* --- Existing CSS (Theme Toggle, Location Controls, Center Button) --- */
+        /* --- Existing CSS (Theme Toggle, Center Button) --- */
         #theme-toggle {
             position: absolute;
             top: 15px;
@@ -451,34 +451,9 @@
             fill: none;
             transition: stroke 0.3s ease;
         }
-        #location-controls {
-            position: absolute;
-            top: 74px; 
-            right: 15px;
-            z-index: 30;
-            background-color: var(--surface-color);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px var(--shadow-color);
-            padding: 12px;
-            width: 200px;
-            font-size: 12px;
-            color: var(--text-color);
-            transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
-        }
-        #location-controls label {
-            display: block;
-            margin-bottom: 2px;
-            font-weight: 500;
-        }
-        #location-controls input[type="range"] {
-            width: 100%;
-        }
-        #coords-display {
-            margin-top: 8px;
-            font-family: monospace;
-            white-space: pre; 
-            line-height: 1.4;
-        }
+
+        /* --- REMOVED #location-controls CSS --- */
+
         #center-user-btn {
             position: absolute;
             bottom: 20px;
@@ -590,17 +565,6 @@
             </svg>
     </button>
 
-    <div id="location-controls">
-        <label for="lat-slider">Latitude</label>
-        <input type="range" id="lat-slider" min="18.00" max="18.04" step="0.0001">
-        
-        <label for="lon-slider" style="margin-top: 8px;">Longitude</label>
-        <input type="range" id="lon-slider" min="-76.76" max="-76.73" step="0.0001">
-        
-        <div id="coords-display">Lat: 0.000000<br>Lon: 0.000000</div>
-    </div>
-
-
     <div id="map-container">
         <div id="transform-wrapper">
             <img id="map-image" src="Utech-CampusMap-Full.png" alt="UTech Campus Map" />
@@ -650,11 +614,9 @@
         const userLocationMarker = document.getElementById('user-location-marker');
         const themeToggle = document.getElementById('theme-toggle');
         const themeIcon = document.getElementById('theme-icon');
-        const latSlider = document.getElementById('lat-slider');
-        const lonSlider = document.getElementById('lon-slider');
-        const coordsDisplay = document.getElementById('coords-display');
+        // --- REMOVED latSlider, lonSlider, coordsDisplay ---
         const centerUserBtn = document.getElementById('center-user-btn');
-        const resetZoomBtn = document.getElementById('reset-zoom-btn'); // <-- NEW
+        const resetZoomBtn = document.getElementById('reset-zoom-btn'); 
 
         // --- NEW CONSTANTS FOR MODAL & NODE INFO ---
         const searchButton = document.getElementById('search-button');
@@ -832,11 +794,11 @@
                     
                     createPathSvgOverlay(); // <--- ADDED
                     
+                    // --- MODIFIED: Set initial user location directly ---
                     const initialLat = 18.0165;
                     const initialLon = -76.7440;
-                    latSlider.value = initialLat;
-                    lonSlider.value = initialLon;
-                    handleSliderChange(); 
+                    updateUserLocation(initialLat, initialLon); // Set initial user location
+                    // --- END MODIFICATION ---
                     
                     // FIX: Ensure search button is visible by hiding the node info box initially
                     nodeInfoDisplay.style.display = 'none';
@@ -852,15 +814,9 @@
         
         themeToggle.addEventListener('click', toggleTheme);
         
-        function handleSliderChange() {
-            const lat = parseFloat(latSlider.value);
-            const lon = parseFloat(lonSlider.value);
-            coordsDisplay.innerHTML = `Lat: ${lat.toFixed(6)}<br>Lon: ${lon.toFixed(6)}`;
-            updateUserLocation(lat, lon);
-        }
+        // --- REMOVED handleSliderChange() ---
         
-        latSlider.addEventListener('input', handleSliderChange);
-        lonSlider.addEventListener('input', handleSliderChange);
+        // --- REMOVED latSlider/lonSlider event listeners ---
 
 
         function renderNodes() {
