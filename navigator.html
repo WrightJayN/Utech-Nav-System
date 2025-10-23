@@ -794,11 +794,68 @@
                     
                     createPathSvgOverlay(); // <--- ADDED
                     
-                    // --- MODIFIED: Set initial user location directly ---
-                    const initialLat = 18.0165;
-                    const initialLon = -76.7440;
-                    updateUserLocation(initialLat, initialLon); // Set initial user location
-                    // --- END MODIFICATION ---
+                    // --- NEW: Real-time GPS Integration ---
+                    
+                    let firstLocationUpdate = true; // To center on the first location fix
+
+                    /**
+                    * Handles a successful GPS location update.
+                    * This is called by navigator.geolocation.watchPosition.
+                    */
+                    function handleLocationSuccess(position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        
+                        console.log(`GPS location update: ${lat}, ${lon}`);
+                        
+                        // This function already exists in your code and will move the blue marker
+                        updateUserLocation(lat, lon); 
+
+                        // On the very first successful location update, pan the map to the user
+                        if (firstLocationUpdate) {
+                            firstLocationUpdate = false;
+                            // This function already exists in your code
+                            panToLocation(lat, lon); 
+                        }
+                    }
+
+                    /**
+                    * Handles errors from the Geolocation API.
+                    */
+                    function handleLocationError(error) {
+                        console.warn(`Geolocation error (${error.code}): ${error.message}`);
+                        
+                        // Hide the "center user" button if permission is denied
+                        if (error.code === error.PERMISSION_DENIED) {
+                            centerUserBtn.style.display = 'none';
+                            alert("You denied location access. The 'my location' feature will not work.");
+                        } else {
+                            alert("Could not get your location. Please ensure GPS is enabled and you have a clear signal.");
+                        }
+                    }
+
+                    // Check if the browser supports the Geolocation API
+                    if ('geolocation' in navigator) {
+                        console.log("Geolocation API supported. Watching position...");
+                        
+                        // Start watching for real-time updates.
+                        // This will repeatedly call handleLocationSuccess as the user moves.
+                        navigator.geolocation.watchPosition(
+                            handleLocationSuccess, 
+                            handleLocationError, 
+                            {
+                                enableHighAccuracy: true, // Request high accuracy (uses GPS)
+                                timeout: 5000,          // Wait 5 seconds for a response
+                                maximumAge: 0           // Don't use a cached position
+                            }
+                        );
+                    } else {
+                        // Geolocation is not supported by this browser
+                        console.warn("Geolocation API not supported by this browser.");
+                        alert("Your browser does not support geolocation.");
+                        centerUserBtn.style.display = 'none';
+                    }
+                    // --- END NEW GPS INTEGRATION ---
                     
                     // FIX: Ensure search button is visible by hiding the node info box initially
                     nodeInfoDisplay.style.display = 'none';
