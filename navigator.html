@@ -675,7 +675,7 @@
         let originalImageWidth = 0;
         let originalImageHeight = 0;
         const NODE_SCALE_FACTOR = 3.42;
-        let USER_SCALE_FACTOR = 1.00; // <-- NEW: Separate scale for user location
+        let USER_SCALE_FACTOR = 3.42; // <-- Separate scale for user location
         let scale = 1;
         let panning = false;
         let view = { x: 0, y: 0 }; 
@@ -702,13 +702,108 @@
         let pathSvg = null; // The SVG element for drawing lines
         let currentPath = []; // Stores the last valid path for resizing
 
+        // --- REPLACED: Old linear scaling logic is gone ---
+        // --- NEW MERCATOR PROJECTION IMPLEMENTATION ---
+
+        // These are your calibration points.
+        // For best accuracy, use points from opposite diagonal corners of the map.
         const P1_GEO = { lat: 18.015941, lon: -76.744185 }; 
         const P1_PIXEL = { x: 1283, y: 3090 }; 
         const P2_GEO = { lat: 18.017019, lon: -76.743908}; 
         const P2_PIXEL = { x: 1331, y: 2484 }; 
+
+        // These new variables will replace 'lonScale' and 'latScale'
+        let mercatorScale;
+        let mercatorOffsetX;
+        let mercatorOffsetY;
+
+        /**
+         * Helper function: Converts (lat, lon) to Mercator "world" coordinates.
+         * This is the core projection math.
+         */
+        function projectMercator(lat, lon) {
+            const latRad = lat * (Math.PI / 180);
+            const lonRad = lon * (Math.PI / 180);
+
+            // X coordinate (longitude) is linear
+            const x = lonRad;
+
+            // Y coordinate (latitude) is non-linear (the magic part)
+            // This is the log(tan(pi/4 + lat/2)) formula
+            const y = Math.log(Math.tan( (Math.PI / 4) + (latRad / 2) ));
+
+            return { x: x, y: y };
+        }
+
+        /**
+         * Calibrates the map by finding the scale and offset
+         * to convert Mercator coordinates to your map's PIXEL coordinates.
+         */
+        function calibrateMercator() {
+            // 1. Convert our two GEO calibration points to Mercator coordinates
+            const p1_mercator = projectMercator(P1_GEO.lat, P1_GEO.lon);
+            const p2_mercator = projectMercator(P2_GEO.lat, P2_GEO.lon);
+
+            // 2. Calculate the difference (delta) in both coordinate systems
+            const deltaMercatorX = p2_mercator.x - p1_mercator.x;
+            const deltaPixelX = P2_PIXEL.x - P1_PIXEL.x;
+
+            const deltaMercatorY = p2_mercator.y - p1_mercator.y;
+            const deltaPixelY = P2_PIXEL.y - P1_PIXEL.y;
+
+            // 3. Calculate the scale.
+            // We get two scale values, one for X and one for Y.
+            // In a proper Mercator map, these *should* be very close.
+            // We'll average them for a more robust transformation.
+            const scaleX = deltaPixelX / deltaMercatorX;
+            const scaleY = deltaPixelY / deltaMercatorY;
+            mercatorScale = (scaleX + scaleY) / 2.0;
+
+            // 4. Calculate the offset (how to 'move' the map)
+            // This finds the pixel coordinate for (0,0) in the Mercator system.
+            mercatorOffsetX = P1_PIXEL.x - (p1_mercator.x * mercatorScale);
+            mercatorOffsetY = P1_PIXEL.y - (p1_mercator.y * mercatorScale);
+
+            console.log(`Mercator calibrated: Scale=${mercatorScale}, OffsetX=${mercatorOffsetX}, OffsetY=${mercatorOffsetY}`);
+        }
+
+        // Run the calibration immediately when the script loads
+        calibrateMercator();
+
+        /**
+         * Replaces the old function.
+         * Converts a user's (lat, lon) to the final (x, y) PIXEL coordinate
+         * using the calibrated Mercator projection.
+         */
+        function convertGeoToPixel(userLat, userLon) {
+            // 1. Convert the user's GPS to Mercator coordinates
+            const userMercator = projectMercator(userLat, userLon);
+
+            // 2. Apply the scale and offset we found during calibration
+            const pixelX = (userMercator.x * mercatorScale) + mercatorOffsetX;
+            const pixelY = (userMercator.y * mercatorScale) + mercatorOffsetY;
+
+            return { x: pixelX, y: pixelY };
+        }
         
-        const lonScale = (P2_PIXEL.x - P1_PIXEL.x) / (P2_GEO.lon - P1_GEO.lon);
-        const latScale = (P2_PIXEL.y - P1_PIXEL.y) / (P2_GEO.lat - P1_GEO.lat);
+        /**
+         * (This function is no longer accurate with Mercator, but we leave it
+         * as a placeholder if other code needs it. It's not used by the user marker.)
+         */
+        function convertPixelToGeo(pixelX, pixelY) {
+            console.warn("convertPixelToGeo is not accurate with Mercator projection.");
+            // This is the reverse math (less important)
+            const mercatorX = (pixelX - mercatorOffsetX) / mercatorScale;
+            const mercatorY = (pixelY - mercatorOffsetY) / mercatorScale;
+            
+            const lonRad = mercatorX;
+            const latRad = (2 * Math.atan(Math.exp(mercatorY))) - (Math.PI / 2);
+
+            return { lat: latRad * (180 / Math.PI), lon: lonRad * (180 / Math.PI) };
+        }
+
+        // --- END MERCATOR PROJECTION IMPLEMENTATION ---
+
 
         const sunIcon = `<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
         const moonIcon = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
@@ -827,36 +922,36 @@
                     
                     // --- NEW: Real-time GPS Integration ---
             
+                    // --- (Optional) GPS SIMULATION BLOCK ---
+                    const SIMULATE_GPS = false; // Set to 'true' to use fake coordinates
+                    const FAKE_LAT = 18.0165;
+                    const FAKE_LON = -76.7440;
+
+                    if (SIMULATE_GPS && 'geolocation' in navigator) {
+                        console.warn("--- GPS SIMULATION IS ACTIVE ---");
+                        navigator.geolocation.watchPosition = (successCallback, errorCallback, options) => {
+                            console.log("Sending fake GPS location:", FAKE_LAT, FAKE_LON);
+                            successCallback({ coords: { latitude: FAKE_LAT, longitude: FAKE_LON } });
+                        };
+                    }
+                    // --- END SIMULATION BLOCK ---
+
                     let firstLocationUpdate = true; // To center on the first location fix
 
-                    /**
-                     * Handles a successful GPS location update.
-                     * This is called by navigator.geolocation.watchPosition.
-                     */
                     function handleLocationSuccess(position) {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
-                        
                         console.log(`GPS location update: ${lat}, ${lon}`);
-                        
-                        // This function already exists in your code and will move the blue marker
                         updateUserLocation(lat, lon); 
 
-                        // On the very first successful location update, pan the map to the user
                         if (firstLocationUpdate) {
                             firstLocationUpdate = false;
-                            // This function already exists in your code
                             panToLocation(lat, lon); 
                         }
                     }
 
-                    /**
-                     * Handles errors from the Geolocation API.
-                     */
                     function handleLocationError(error) {
                         console.warn(`Geolocation error (${error.code}): ${error.message}`);
-                        
-                        // Hide the "center user" button if permission is denied
                         if (error.code === error.PERMISSION_DENIED) {
                             centerUserBtn.style.display = 'none';
                             alert("You denied location access. The 'my location' feature will not work.");
@@ -865,23 +960,18 @@
                         }
                     }
 
-                    // Check if the browser supports the Geolocation API
                     if ('geolocation' in navigator) {
                         console.log("Geolocation API supported. Watching position...");
-                        
-                        // Start watching for real-time updates.
-                        // This will repeatedly call handleLocationSuccess as the user moves.
                         navigator.geolocation.watchPosition(
                             handleLocationSuccess, 
                             handleLocationError, 
                             {
-                                enableHighAccuracy: true, // Request high accuracy (uses GPS)
-                                timeout: 5000,          // Wait 5 seconds for a response
-                                maximumAge: 0           // Don't use a cached position
+                                enableHighAccuracy: true,
+                                timeout: 5000,
+                                maximumAge: 0
                             }
                         );
                     } else {
-                        // Geolocation is not supported by this browser
                         console.warn("Geolocation API not supported by this browser.");
                         alert("Your browser does not support geolocation.");
                         centerUserBtn.style.display = 'none';
@@ -944,6 +1034,7 @@
                 const nodeElement = document.createElement('div');
                 nodeElement.classList.add('node');
                 nodeElement.dataset.id = node.id;
+                // --- Nodes use NODE_SCALE_FACTOR ---
                 const finalX = (node.x * NODE_SCALE_FACTOR) * widthRatio;
                 const finalY = (node.y * NODE_SCALE_FACTOR) * heightRatio;
                 nodeElement.style.left = `${finalX}px`;
@@ -1035,32 +1126,22 @@
             view.y = 0;
             setTransform(0, 0, 1);
         }
+        
+        // --- getPinchDistance was removed in your original file but is needed by touch controls ---
         function getPinchDistance(touches) {
             const dx = touches[0].clientX - touches[1].clientX;
             const dy = touches[0].clientY - touches[1].clientY;
             return Math.sqrt(dx * dx + dy * dy);
         }
-        
-        function convertPixelToGeo(pixelX, pixelY) {
-            const deltaLon = (pixelX - P1_PIXEL.x) / lonScale;
-            const deltaLat = (pixelY - P1_PIXEL.y) / latScale;
-            const geoLon = P1_GEO.lon + deltaLon;
-            const geoLat = P1_GEO.lat + deltaLat;
-            return { lat: geoLat, lon: geoLon };
-        }
+        // --- End function ---
 
-        function convertGeoToPixel(userLat, userLon) {
-            const deltaLon = userLon - P1_GEO.lon;
-            const deltaLat = userLat - P1_GEO.lat;
-            const pixelX = P1_PIXEL.x + (deltaLon * lonScale);
-            const pixelY = P1_PIXEL.y + (deltaLat * latScale);
-            return { x: pixelX, y: pixelY };
-        }
 
         function updateUserLocation(lat, lon) {
             currentUserLocation = { lat, lon };
             if (originalImageWidth === 0) return; 
+            // --- Uses new convertGeoToPixel function ---
             const basePixelCoords = convertGeoToPixel(lat, lon);
+            
             const currentImageWidth = mapImage.offsetWidth;
             const currentImageHeight = mapImage.offsetHeight;
             const widthRatio = currentImageWidth / originalImageWidth;
@@ -1071,6 +1152,7 @@
             const finalY = (basePixelCoords.y * USER_SCALE_FACTOR) * heightRatio;
             
             console.log(`User location updated to (${lat}, ${lon}) -> (pixel: ${finalX.toFixed(2)}, ${finalY.toFixed(2)}) using scale ${USER_SCALE_FACTOR}`);
+            
             const mapMinX = 0;
             const mapMaxX = currentImageWidth;
             const mapMinY = 0;
@@ -1098,15 +1180,11 @@
             userLocationMarker.style.display = 'block';
         }
         
-        // --- selectAndCenterOnNode is now only for single-node display/zoom (e.g., clicking on a node) ---
         function selectAndCenterOnNode(node) {
             if (!node) return;
             
-            // Clear all non-persistent highlights
             document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
             document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
-            
-            // NEW: Clear persistent route visibility
             document.querySelectorAll('.node.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
             document.querySelectorAll('.node-label.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
 
@@ -1114,7 +1192,6 @@
             const newNodeElement = document.querySelector(`.node[data-id="${node.id}"]`);
             const newLabelElement = document.querySelector(`.node-label[data-id="${node.id}"]`);
             
-            // Apply new selection highlight and route visibility
             if (newNodeElement) {
                 newNodeElement.classList.add('selected');
                 newNodeElement.classList.add('route-node-visible'); 
@@ -1126,60 +1203,51 @@
             
             console.log(`Selected node: ${node.name} (ID: ${node.id})`);
             
-            // Update the currently selected node for the info box
             currentlySelectedNode = node;
             
             const currentImageWidth = mapImage.offsetWidth;
             const currentImageHeight = mapImage.offsetHeight;
             const widthRatio = currentImageWidth / originalImageWidth;
             const heightRatio = currentImageHeight / originalImageHeight;
+            
+            // --- Centering on a NODE uses NODE_SCALE_FACTOR ---
             const nodeX = (node.x * NODE_SCALE_FACTOR) * widthRatio;
             const nodeY = (node.y * NODE_SCALE_FACTOR) * heightRatio;
             
-            // Zoom target
             const zoomScale = 3.0;
             const newViewX = (mapContainer.clientWidth / 2) - (nodeX * zoomScale);
             const newViewY = (mapContainer.clientHeight / 2) - (nodeY * zoomScale);
             
-            // Pass the zoomScale as the targetScale to the animation function
             animatePanToTarget(newViewX, newViewY, zoomScale); 
             
-            // Show the info display box
             nodeNameDisplay.textContent = node.name;
             nodeInfoDisplay.style.display = 'flex';
         }
         
-        // Helper to clear the node selection and hide the info box
         function clearNodeSelection() {
-            // Clear transient highlights/selections
             document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
             document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
-            
-            // Clear persistent route visibility
             document.querySelectorAll('.node.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
             document.querySelectorAll('.node-label.route-node-visible').forEach(el => el.classList.remove('route-node-visible'));
 
             currentlySelectedNode = null;
             nodeInfoDisplay.style.display = 'none';
-            // NEW: Hide the clear route button and show the search button
             document.body.removeAttribute('data-route-active');
 
-            // --- ADDED ---
             currentPath = [];
             if (pathSvg) {
                 pathSvg.innerHTML = '';
             }
-            // --- END ADDED ---
         }
         
         closeInfoBtn.addEventListener('click', clearNodeSelection);
-        // NEW: Clear Route Button Listener
         clearRouteBtn.addEventListener('click', clearNodeSelection);
-
 
         function panToLocation(lat, lon) {
             if (originalImageWidth === 0) return; 
+            // --- Uses new convertGeoToPixel function ---
             const basePixelCoords = convertGeoToPixel(lat, lon);
+            
             const currentImageWidth = mapImage.offsetWidth;
             const currentImageHeight = mapImage.offsetHeight;
             const widthRatio = currentImageWidth / originalImageWidth;
@@ -1197,7 +1265,6 @@
 
         centerUserBtn.addEventListener('click', () => {
             if (currentUserLocation) {
-                // Reset zoom to 1 when centering on user location
                 targetScale = 1; 
                 panToLocation(currentUserLocation.lat, currentUserLocation.lon);
             } else {
@@ -1205,27 +1272,16 @@
             }
         });
 
-        // --- NEW: Reset Zoom Button Listener ---
         resetZoomBtn.addEventListener('click', () => {
             const newScale = 1.0;
-            
-            // Get the center of the viewport
             const centerX = mapContainer.clientWidth / 2;
             const centerY = mapContainer.clientHeight / 2;
-
-            // Find what point on the image (world coords) is currently at the center
             const worldX = (centerX - view.x) / scale;
             const worldY = (centerY - view.y) / scale;
-
-            // Calculate the new view.x/y to keep that world point
-            // centered after scaling back to 1.0
             const newViewX = centerX - (worldX * newScale);
             const newViewY = centerY - (worldY * newScale);
-
-            // Animate to the new position and 1.0 scale
             animatePanToTarget(newViewX, newViewY, newScale);
         });
-        // --- END NEW ---
 
         function distanceSq(p1, p2) {
             const dx = p1.x - p2.x;
@@ -1239,6 +1295,7 @@
 
             if (!nodesList || nodesList.length === 0) return null;
 
+            // --- Uses new convertGeoToPixel function ---
             const userPixel = convertGeoToPixel(location.lat, location.lon);
             
             // --- MODIFIED TO USE USER_SCALE_FACTOR ---
@@ -1248,9 +1305,10 @@
             };
             
             nodesList.forEach(node => {
+                // --- Nodes use NODE_SCALE_FACTOR ---
                 const nodePixel = { 
-                    x: node.x * NODE_SCALE_FACTOR, // Node scale remains the same
-                    y: node.y * NODE_SCALE_FACTOR  // Node scale remains the same
+                    x: node.x * NODE_SCALE_FACTOR, 
+                    y: node.y * NODE_SCALE_FACTOR 
                 };
                 const distSq = distanceSq(scaledUserPixel, nodePixel);
 
@@ -1271,11 +1329,13 @@
             const closestNodeOnCampus = getClosestNodeInList(currentUserLocation, nodesData.nodes);
 
             const ON_CAMPUS_DISTANCE_THRESHOLD_SQ = 30000; 
+            // --- Uses new convertGeoToPixel function ---
             let userPixel = convertGeoToPixel(currentUserLocation.lat, currentUserLocation.lon);
-            let closestNodeBasePixel = closestNodeOnCampus ? { x: closestNodeOnCampus.x * NODE_SCALE_FACTOR, y: closestNodeOnCampus.y * NODE_SCALE_FACTOR } : null; // Node scale
+            // --- Nodes use NODE_SCALE_FACTOR ---
+            let closestNodeBasePixel = closestNodeOnCampus ? { x: closestNodeOnCampus.x * NODE_SCALE_FACTOR, y: closestNodeOnCampus.y * NODE_SCALE_FACTOR } : null; 
             
-            // --- MODIFIED TO USE USER_SCALE_FACTOR ---
-            let actualDistanceSq = closestNodeBasePixel ? distanceSq({ x: userPixel.x * USER_SCALE_FACTOR, y: userPixel.y * USER_SCALE_FACTOR }, closestNodeBasePixel) : Infinity; // User scale vs Node scale
+            // --- MODIFIED TO USE USER_SCALE_FACTOR for user ---
+            let actualDistanceSq = closestNodeBasePixel ? distanceSq({ x: userPixel.x * USER_SCALE_FACTOR, y: userPixel.y * USER_SCALE_FACTOR }, closestNodeBasePixel) : Infinity;
 
             if (actualDistanceSq < ON_CAMPUS_DISTANCE_THRESHOLD_SQ) {
                 return closestNodeOnCampus;
@@ -1292,94 +1352,65 @@
             return closestNodeOnCampus; 
         }
 
-        // --- NEW: Graph & Pathfinding Functions ---
+        // --- Graph & Pathfinding Functions ---
 
-        /**
-         * Creates the graph data structures (adjacency list and node map)
-         * from the loaded nodesData, now including edge weights.
-         */
         function buildGraphDataStructures() {
             nodeMap = {};
             adjacencyList = {};
 
-            // Create a map for quick node lookups by ID
-            // and initialize the adjacency list
             nodesData.nodes.forEach(node => {
                 nodeMap[node.id] = node;
                 adjacencyList[node.id] = [];
             });
 
-            // Populate the adjacency list.
-            // We assume an undirected graph, so add edges in both directions.
             nodesData.edges.forEach(edge => {
-                // Add edge from 'from' to 'to' with weight
                 adjacencyList[edge.from].push({ node: edge.to, weight: edge.weight });
-                // Add edge from 'to' to 'from' with weight
                 adjacencyList[edge.to].push({ node: edge.from, weight: edge.weight });
             });
             console.log("Graph data structures built (with weights).");
         }
 
-        /**
-         * Creates an SVG overlay inside the transformWrapper to draw paths on.
-         */
         function createPathSvgOverlay() {
-            if (document.getElementById('path-svg')) return; // Already created
+            if (document.getElementById('path-svg')) return; 
 
             pathSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             pathSvg.id = 'path-svg';
             pathSvg.style.position = 'absolute';
             pathSvg.style.top = '0';
             pathSvg.style.left = '0';
-            pathSvg.style.width = '100%'; // Will match the image width
-            pathSvg.style.height = '100%'; // Will match the image height
-            pathSvg.style.pointerEvents = 'none'; // CRITICAL: allows clicks to pass through
-            pathSvg.style.zIndex = '5'; // Above image, below nodes
+            pathSvg.style.width = '100%';
+            pathSvg.style.height = '100%';
+            pathSvg.style.pointerEvents = 'none';
+            pathSvg.style.zIndex = '5';
             
-            // Prepend it so nodes are drawn on top
             transformWrapper.prepend(pathSvg); 
             console.log("SVG overlay created.");
         }
 
-        /**
-         * Implements Dijkstra's algorithm to find the shortest path using edge weights.
-         * @param {number} startId - The ID of the starting node.
-         * @param {number} endId - The ID of the destination node.
-         * @returns {number[] | null} An array of node IDs representing the path, or null if no path is found.
-         */
         function findPathDijkstra(startId, endId) {
-            // A simple Priority Queue implementation using an array
-            // Stores { id, distance }
             let queue = [];
             queue.push({ id: startId, distance: 0 });
 
-            // distances map: { nodeId: shortestDistance }
             let distances = {};
-            // parentMap: { childId: parentId }
             let parentMap = {};
             
-            // Initialize distances for all nodes
             nodesData.nodes.forEach(node => {
                 distances[node.id] = Infinity;
                 parentMap[node.id] = null;
             });
             
-            // The distance to the start node is 0
             distances[startId] = 0;
 
             let pathFound = false;
 
             while (queue.length > 0) {
-                // Sort queue to get the node with the smallest distance (this is the "priority")
                 queue.sort((a, b) => a.distance - b.distance);
                 const { id: currentId, distance: currentDistance } = queue.shift();
 
-                // If this node's distance is already greater than a known shorter path, skip it
                 if (currentDistance > distances[currentId]) {
                     continue;
                 }
                 
-                // If we reached the end, we're done
                 if (currentId === endId) {
                     pathFound = true;
                     break;
@@ -1387,17 +1418,12 @@
 
                 const neighbors = adjacencyList[currentId];
                 if (neighbors) {
-                    // Check all neighbors of the current node
                     for (const neighbor of neighbors) {
                         const neighborId = neighbor.node;
                         const weight = neighbor.weight;
-                        
-                        // The new distance to this neighbor is our current path's cost + the edge weight
                         const newDistance = currentDistance + weight;
 
-                        // If we found a shorter path to this neighbor...
                         if (newDistance < distances[neighborId]) {
-                            // ...update its distance, set its parent, and add it to the queue
                             distances[neighborId] = newDistance;
                             parentMap[neighborId] = currentId;
                             queue.push({ id: neighborId, distance: newDistance });
@@ -1410,29 +1436,23 @@
                 return null; // No path
             }
 
-            // Reconstruct path by backtracking from the end node
             const path = [];
             let current = endId;
             while (current !== null) {
-                path.unshift(current); // Add to the front
+                path.unshift(current);
                 current = parentMap[current];
             }
             
             return (path[0] === startId) ? path : null;
         }
 
-        /**
-         * Draws the given path on the SVG overlay.
-         * @param {number[]} pathNodeIds - An array of node IDs.
-         */
         function drawPath(pathNodeIds) {
             if (!pathSvg || !originalImageWidth || pathNodeIds.length < 2) {
                 return;
             }
 
-            pathSvg.innerHTML = ''; // Clear previous path
+            pathSvg.innerHTML = ''; 
             
-            // Get current dimensions and ratios
             const currentImageWidth = mapImage.offsetWidth;
             const currentImageHeight = mapImage.offsetHeight;
             const widthRatio = currentImageWidth / originalImageWidth;
@@ -1442,9 +1462,9 @@
                 const nodeA = nodeMap[pathNodeIds[i]];
                 const nodeB = nodeMap[pathNodeIds[i+1]];
 
-                if (!nodeA || !nodeB) continue; // Safety check
+                if (!nodeA || !nodeB) continue; 
 
-                // Calculate scaled coordinates just like the nodes
+                // --- Drawing paths between NODES uses NODE_SCALE_FACTOR ---
                 const x1 = (nodeA.x * NODE_SCALE_FACTOR) * widthRatio;
                 const y1 = (nodeA.y * NODE_SCALE_FACTOR) * heightRatio;
                 const x2 = (nodeB.x * NODE_SCALE_FACTOR) * widthRatio;
@@ -1456,22 +1476,21 @@
                 line.setAttribute('x2', x2);
                 line.setAttribute('y2', y2);
                 line.setAttribute('stroke', 'yellow');
-                line.setAttribute('stroke-width', '5'); // Make it thick and visible
+                line.setAttribute('stroke-width', '5');
                 line.setAttribute('stroke-linecap', 'round');
-                // Add a shadow for better visibility on light parts of the map
                 line.style.filter = 'drop-shadow(0 0 3px rgba(0,0,0,0.8))'; 
 
                 pathSvg.appendChild(line);
             }
         }
 
+        // --- Modal and Autocomplete Logic ---
 
         function openModal(destinationNode = null) {
             routeModal.style.display = 'flex';
             setTimeout(() => {
                 routeModal.classList.add('open');
             }, 10); 
-            // Reset fields
             fromInput.value = '';
             toInput.value = '';
             selectedFromNode = null;
@@ -1483,18 +1502,14 @@
             fromError.style.display = 'none';
             toError.style.display = 'none';
             
-            // Clear all highlights when opening the modal
-            // We call the full clear function because opening the modal should always reset the map view
             clearNodeSelection();
             
-            // Set Default 'From' Location (User Location Logic)
             const defaultFromNode = findClosestNodeToUser();
             if (defaultFromNode) {
                 selectedFromNode = defaultFromNode;
                 fromInput.value = defaultFromNode.name + ' (user location)';
             }
             
-            // Set 'To' Location if provided (from the 'Get Directions' button)
             if (destinationNode) {
                 selectedToNode = destinationNode;
                 toInput.value = destinationNode.name;
@@ -1508,7 +1523,6 @@
             }, 300); 
         }
         
-        // Helper to normalize the input value by removing the suffix
         const USER_LOCATION_SUFFIX = ' (user location)';
         function normalizeInput(value) {
             let normalized = value.toLowerCase().trim();
@@ -1518,23 +1532,19 @@
             return normalized;
         }
         
-        // Helper to determine if the current selection is based on the user's location (i.e., has the suffix)
         function isUserLocationSelection(inputValue) {
             return inputValue.toLowerCase().trim().endsWith(USER_LOCATION_SUFFIX.toLowerCase());
         }
 
-        // --- EVENT LISTENERS ---
-        searchButton.addEventListener('click', () => openModal(null)); // Open modal without pre-selecting 'to'
+        searchButton.addEventListener('click', () => openModal(null));
         closeModalBtn.addEventListener('click', closeModal);
         
-        // Get Directions button handler
         getDirectionsBtn.addEventListener('click', () => {
             if (currentlySelectedNode) {
                 openModal(currentlySelectedNode);
             }
         });
         
-        // --- Drag/Select Fix and Modal Close Logic ---
         modalContent.addEventListener('mousedown', () => {
             isDraggingText = false; 
         });
@@ -1559,7 +1569,6 @@
             isDraggingText = false;
         });
 
-        // --- MODIFIED: handleRouteSearch to find and draw path ---
         function handleRouteSearch() {
             let isValid = true;
             fromError.style.display = 'none';
@@ -1591,26 +1600,21 @@
             if (isValid) {
                 console.log(`Starting route search from ${selectedFromNode.name} (ID: ${selectedFromNode.id}) to ${selectedToNode.name} (ID: ${selectedToNode.id}).`);
                 
-                // --- 1. PERFORM PATHFINDING ---
                 const path = findPathDijkstra(selectedFromNode.id, selectedToNode.id);
 
                 if (!path) {
                     console.error("No path found between nodes.");
-                    currentPath = []; // Clear any old path
-                    if (pathSvg) pathSvg.innerHTML = ''; // Clear lines
-                    // Show error in modal instead of alert
+                    currentPath = [];
+                    if (pathSvg) pathSvg.innerHTML = '';
                     toError.innerText = 'A path could not be found to that location.';
                     toError.style.display = 'block';
-                    return; // Stop, leave modal open
+                    return;
                 }
 
                 console.log("Path found:", path);
-                currentPath = path; // Save for resizing
-                drawPath(currentPath); // Draw yellow lines
+                currentPath = path;
+                drawPath(currentPath);
 
-                // --- 2. APPLY PERSISTENT VISIBILITY (Red Circles) ---
-                
-                // Highlight all nodes in the path
                 path.forEach(nodeId => {
                     const nodeEl = document.querySelector(`.node[data-id="${nodeId}"]`);
                     const labelEl = document.querySelector(`.node-label[data-id="${nodeId}"]`);
@@ -1619,38 +1623,34 @@
                         nodeEl.classList.add('selected', 'route-node-visible');
                     }
                     
-                    // Only show the label for the *final* destination
                     if (labelEl && nodeId === selectedToNode.id) {
                          labelEl.classList.add('selected', 'route-node-visible'); 
                     }
                 });
                 
-                // --- 3. ZOOM OUT AND CENTER (Reset Zoom to 1.0) ---
                 const currentImageWidth = mapImage.offsetWidth;
                 const currentImageHeight = mapImage.offsetHeight;
                 const widthRatio = currentImageWidth / originalImageWidth;
                 const heightRatio = currentImageHeight / originalImageHeight;
                 
+                // --- Centering map on NODES uses NODE_SCALE_FACTOR ---
                 const nodeX1 = (selectedFromNode.x * NODE_SCALE_FACTOR) * widthRatio;
                 const nodeY1 = (selectedFromNode.y * NODE_SCALE_FACTOR) * heightRatio;
                 const nodeX2 = (selectedToNode.x * NODE_SCALE_FACTOR) * widthRatio;
                 const nodeY2 = (selectedToNode.y * NODE_SCALE_FACTOR) * heightRatio;
                 
-                // Calculate midpoint in current pixel space (scale = 1)
                 const midX = (nodeX1 + nodeX2) / 2;
                 const midY = (nodeY1 + nodeY2) / 2;
 
                 const zoomScale = 1.0; 
 
-                // Calculate view center based on midpoint and zoom level
                 const newViewX = (mapContainer.clientWidth / 2) - (midX * zoomScale);
                 const newViewY = (mapContainer.clientHeight / 2) - (midY * zoomScale);
                 
-                currentlySelectedNode = selectedToNode; // Keep 'to' node as the context
+                currentlySelectedNode = selectedToNode;
                 
                 animatePanToTarget(newViewX, newViewY, zoomScale); 
                 
-                // NEW: Show the clear route button
                 document.body.setAttribute('data-route-active', 'true');
                 
                 closeModal();
@@ -1670,7 +1670,7 @@
             
             if (selectedNode && query !== selectedNode.name.toLowerCase().trim()) {
                 if (isFromInput && rawQuery.toLowerCase().trim() === (selectedNode.name + USER_LOCATION_SUFFIX).toLowerCase().trim()) {
-                    // If it's the 'from' input and the user hasn't modified the full default text, keep it selected
+                    // Keep selected
                 } else {
                     if (isFromInput) {
                         selectedFromNode = null;
@@ -1720,22 +1720,16 @@
         fromInput.addEventListener('input', () => handleAutocomplete(fromInput, resultsFrom, true));
         toInput.addEventListener('input', () => handleAutocomplete(toInput, resultsTo, false));
         
-        // --- FIX: Prevent accidental modal close on autocomplete item click ---
         fromInput.addEventListener('blur', () => {
-            // Use a simple timeout to hide the results.
-            // This delay allows the 'click' event on a result item to fire
-            // before the list is hidden, preventing a race condition where
-            // the click registers on the modal overlay instead.
             setTimeout(() => {
                 resultsFrom.style.display = 'none';
-            }, 150); // Increased timeout to 150ms to be safe
+            }, 150);
         });
         
         toInput.addEventListener('blur', () => {
-             // Use a simple timeout to hide the results.
             setTimeout(() => {
                 resultsTo.style.display = 'none';
-            }, 150); // Increased timeout to 150ms to be safe
+            }, 150);
         });
 
         fromInput.addEventListener('focus', () => {
@@ -1749,11 +1743,6 @@
             }
         });
 
-        // --- NEW FIX: Prevent blur when clicking on the results list ---
-        // This stops the race condition. By preventing the default mousedown
-        // behavior on the results list, we stop the input field from
-        // firing its 'blur' event. This ensures the list doesn't disappear
-        // while the user is clicking an item or its scrollbar.
         resultsFrom.addEventListener('mousedown', (e) => {
             e.preventDefault();
         });
@@ -1762,7 +1751,8 @@
             e.preventDefault();
         });
         
-        // --- EXISTING PAN/ZOOM LOGIC (Unchanged) ---
+        // --- Pan/Zoom Event Listeners ---
+
         mapContainer.addEventListener('mousedown', (e) => {
             e.preventDefault();
             isAnimatingPan = false; 
@@ -1770,7 +1760,6 @@
             wasPanning = false; 
             start.x = e.clientX - view.x;
             start.y = e.clientY - view.y;
-            // Removed clearNodeSelection() here to allow persistent nodes to stay on click/drag
         });
         window.addEventListener('mouseup', (e) => {
             panning = false;
@@ -1789,7 +1778,6 @@
             e.preventDefault(); 
             isAnimatingPan = false; 
             
-            // Set the target scale based on wheel delta
             const zoomFactor = 0.05; 
             const delta = e.deltaY < 0 ? 1 : -1; 
             targetScale = Math.max(0.5, Math.min(10, scale + delta * zoomFactor * scale)); 
@@ -1798,16 +1786,12 @@
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
             
-            // Calculate new view center based on targetScale
             const worldX = (mouseX - view.x) / scale;
             const worldY = (mouseY - view.y) / scale;
             let newViewX = mouseX - worldX * targetScale;
             let newViewY = mouseY - worldY * targetScale;
             
-            // Start the smooth animation
             animatePanToTarget(newViewX, newViewY, targetScale);
-            
-            // Allow persistent nodes to remain visible, do not call clearNodeSelection()
         });
 
         mapContainer.addEventListener('touchstart', (e) => {
@@ -1819,14 +1803,12 @@
                 isPinching = false;
                 start.x = e.touches[0].clientX - view.x;
                 start.y = e.touches[0].clientY - view.y;
-                // Removed clearNodeSelection() here
             } else if (e.touches.length === 2) {
                 panning = false;
                 isPinching = true;
                 initialPinchDistance = getPinchDistance(e.touches);
                 startScale = scale; 
-                targetScale = scale; // Initialize target scale for pinching
-                // Removed clearNodeSelection() here
+                targetScale = scale;
             }
         });
         window.addEventListener('touchend', (e) => {
@@ -1855,11 +1837,9 @@
                 const worldY = (pinchCenterY - view.y) / scale;
                 const currentDistance = getPinchDistance(e.touches);
                 
-                // Calculate the new scale (instant update for pinch)
                 const scaleFactor = currentDistance / initialPinchDistance;
                 const newScale = Math.max(0.5, Math.min(10, startScale * scaleFactor)); 
                 
-                // Set the current scale and target scale
                 scale = newScale;
                 targetScale = newScale;
                 
@@ -1870,14 +1850,12 @@
             }
         });
         
-        // --- MODIFIED: mapContainer.addEventListener('click') - Snap to closest node ---
         mapContainer.addEventListener('click', (e) => {
             if (wasPanning || isPinching) {
                 wasPanning = false; 
                 return;
             }
             
-            // If a route is active, don't allow node clicks to overwrite it.
             if (document.body.hasAttribute('data-route-active')) {
                 return;
             }
@@ -1894,11 +1872,11 @@
             const widthRatio = currentImageWidth / originalImageWidth;
             const heightRatio = currentImageHeight / originalImageHeight;
             if (originalImageWidth === 0) {
-                // Do not clear node selection here, as persistent nodes might be active
                 return;
             }
             
             nodesData.nodes.forEach(node => {
+                // --- Clicking on NODES uses NODE_SCALE_FACTOR ---
                 const nodeRenderX = (node.x * NODE_SCALE_FACTOR) * widthRatio;
                 const nodeRenderY = (node.y * NODE_SCALE_FACTOR) * heightRatio;
                 const dx = imageX - nodeRenderX;
@@ -1910,25 +1888,19 @@
                 }
             });
             
-            // LOGIC: Always snap to the closest node
             if (closestNode) {
-                // If the user clicks the currently selected node, clear it (toggle)
                 if (currentlySelectedNode && currentlySelectedNode.id === closestNode.id) {
                     clearNodeSelection();
                 } else {
-                    // Select the new node, which also centers/zooms and displays the info box
                     selectAndCenterOnNode(closestNode); 
                 }
             } else {
-                // Clicked far from any node or no nodes exist
-                // Clear only the transient selection (info box), leave persistent nodes alone
                 document.querySelectorAll('.node.selected, .node.from-highlight').forEach(el => el.classList.remove('selected', 'from-highlight'));
                 document.querySelectorAll('.node-label.selected').forEach(el => el.classList.remove('selected'));
                 currentlySelectedNode = null;
                 nodeInfoDisplay.style.display = 'none';
             }
         });
-
     </script>
 </body>
 </html>
