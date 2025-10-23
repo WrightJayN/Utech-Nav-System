@@ -671,10 +671,12 @@
         let pathSvg = null; // The SVG element for drawing lines
         let currentPath = []; // Stores the last valid path for resizing
 
-        const P1_GEO = { lat: 18.015941, lon: -76.744185 }; 
-        const P1_PIXEL = { x: 1283, y: 3090 }; 
-        const P2_GEO = { lat: 18.017019, lon: -76.743908}; 
-        const P2_PIXEL = { x: 1331, y: 2484 }; 
+        //SCIT Gazebo
+        const P1_GEO = { lat: 18.0183822, lon: -76.743088 }; 
+        const P1_PIXEL = { x: 1621, y: 1680 }; 
+        //School of Engineering
+        const P2_GEO = { lat: 18.0184825, lon: -76.742949 }; 
+        const P2_PIXEL = { x: 1756, y: 1608 }; 
         
         const lonScale = (P2_PIXEL.x - P1_PIXEL.x) / (P2_GEO.lon - P1_GEO.lon);
         const latScale = (P2_PIXEL.y - P1_PIXEL.y) / (P2_GEO.lat - P1_GEO.lat);
