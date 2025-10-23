@@ -1089,8 +1089,23 @@
 
         // --- NEW: Reset Zoom Button Listener ---
         resetZoomBtn.addEventListener('click', () => {
-            // Animate pan to center (0,0) and zoom to 1.0
-            animatePanToTarget(0, 0, 1);
+            const newScale = 1.0;
+            
+            // Get the center of the viewport
+            const centerX = mapContainer.clientWidth / 2;
+            const centerY = mapContainer.clientHeight / 2;
+
+            // Find what point on the image (world coords) is currently at the center
+            const worldX = (centerX - view.x) / scale;
+            const worldY = (centerY - view.y) / scale;
+
+            // Calculate the new view.x/y to keep that world point
+            // centered after scaling back to 1.0
+            const newViewX = centerX - (worldX * newScale);
+            const newViewY = centerY - (worldY * newScale);
+
+            // Animate to the new position and 1.0 scale
+            animatePanToTarget(newViewX, newViewY, newScale);
         });
         // --- END NEW ---
 
