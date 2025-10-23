@@ -510,6 +510,40 @@
             stroke-linejoin: round;
             transition: stroke 0.3s ease;
         }
+        
+        /* --- NEW: Reset Zoom Button --- */
+        #reset-zoom-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 15px; /* Bottom left */
+            z-index: 30;
+            width: 44px;
+            height: 44px;
+            background-color: var(--surface-color);
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            cursor: pointer;
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            outline: none;
+        }
+        #reset-zoom-btn:hover {
+             background-color: var(--bg-color);
+        }
+        #reset-zoom-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--icon-color);
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.3s ease;
+        }
+        /* --- END NEW --- */
 
     </style>
 </head>
@@ -585,7 +619,11 @@
         </svg>
     </button>
 
-
+    <button id="reset-zoom-btn" aria-label="Reset zoom">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+    </button>
     <script>
         // --- MODIFIED CSS INJECTION: Add new blue highlight style ---
         const style = document.createElement('style');
@@ -616,6 +654,7 @@
         const lonSlider = document.getElementById('lon-slider');
         const coordsDisplay = document.getElementById('coords-display');
         const centerUserBtn = document.getElementById('center-user-btn');
+        const resetZoomBtn = document.getElementById('reset-zoom-btn'); // <-- NEW
 
         // --- NEW CONSTANTS FOR MODAL & NODE INFO ---
         const searchButton = document.getElementById('search-button');
@@ -904,9 +943,24 @@
             }
             applyTransform();
         }
+        
+        // --- MODIFIED: applyTransform to show/hide reset zoom button ---
         function applyTransform() {
             transformWrapper.style.transform = `translate(${view.x}px, ${view.y}px) scale(${scale})`;
+            
+            // --- NEW: Show/Hide Reset Zoom Button ---
+            if (resetZoomBtn) {
+                // Use a small epsilon for float comparison
+                if (Math.abs(scale - 1.0) < 0.01) {
+                    resetZoomBtn.style.display = 'none';
+                } else {
+                    resetZoomBtn.style.display = 'flex'; // 'flex' to center the icon
+                }
+            }
+            // --- END NEW ---
         }
+        // --- END MODIFICATION ---
+
         function resetTransform() {
             scale = 1;
             view.x = 0;
@@ -1076,6 +1130,13 @@
                 console.warn("No user location to center on.");
             }
         });
+
+        // --- NEW: Reset Zoom Button Listener ---
+        resetZoomBtn.addEventListener('click', () => {
+            // Animate pan to center (0,0) and zoom to 1.0
+            animatePanToTarget(0, 0, 1);
+        });
+        // --- END NEW ---
 
         function distanceSq(p1, p2) {
             const dx = p1.x - p2.x;
