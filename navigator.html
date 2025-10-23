@@ -520,6 +520,31 @@
         }
         /* --- END NEW --- */
 
+        /* --- NEW: Debug Slider Styles --- */
+        #debug-controls {
+            position: absolute;
+            bottom: 70px; /* Position it above the reset button */
+            left: 15px;
+            z-index: 40;
+            background-color: var(--surface-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 14px;
+        }
+        #debug-controls label {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        #debug-controls input[type="range"] {
+            margin-top: 5px;
+            width: 150px;
+        }
+        /* --- END NEW --- */
+
     </style>
 </head>
 <body>
@@ -588,6 +613,11 @@
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
         </svg>
     </button>
+
+    <div id="debug-controls">
+        <label for="user-scale-slider">User Scale: <span id="user-scale-value">3.42</span></label>
+        <input type="range" id="user-scale-slider" min="0.0" max="6.0" step="0.01" value="3.42">
+    </div>
     <script>
         // --- MODIFIED CSS INJECTION: Add new blue highlight style ---
         const style = document.createElement('style');
@@ -645,6 +675,7 @@
         let originalImageWidth = 0;
         let originalImageHeight = 0;
         const NODE_SCALE_FACTOR = 3.42;
+        let USER_SCALE_FACTOR = 3.42; // <-- NEW: Separate scale for user location
         let scale = 1;
         let panning = false;
         let view = { x: 0, y: 0 }; 
@@ -671,12 +702,10 @@
         let pathSvg = null; // The SVG element for drawing lines
         let currentPath = []; // Stores the last valid path for resizing
 
-        //SCIT Gazebo
-        const P1_GEO = { lat: 18.0183822, lon: -76.743088 }; 
-        const P1_PIXEL = { x: 1621, y: 1680 }; 
-        //School of Engineering
-        const P2_GEO = { lat: 18.0184825, lon: -76.742949 }; 
-        const P2_PIXEL = { x: 1756, y: 1608 }; 
+        const P1_GEO = { lat: 18.015941, lon: -76.744185 }; 
+        const P1_PIXEL = { x: 1283, y: 3090 }; 
+        const P2_GEO = { lat: 18.017019, lon: -76.743908}; 
+        const P2_PIXEL = { x: 1331, y: 2484 }; 
         
         const lonScale = (P2_PIXEL.x - P1_PIXEL.x) / (P2_GEO.lon - P1_GEO.lon);
         const latScale = (P2_PIXEL.y - P1_PIXEL.y) / (P2_GEO.lat - P1_GEO.lat);
@@ -797,13 +826,13 @@
                     createPathSvgOverlay(); // <--- ADDED
                     
                     // --- NEW: Real-time GPS Integration ---
-                    
+            
                     let firstLocationUpdate = true; // To center on the first location fix
 
                     /**
-                    * Handles a successful GPS location update.
-                    * This is called by navigator.geolocation.watchPosition.
-                    */
+                     * Handles a successful GPS location update.
+                     * This is called by navigator.geolocation.watchPosition.
+                     */
                     function handleLocationSuccess(position) {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
@@ -822,8 +851,8 @@
                     }
 
                     /**
-                    * Handles errors from the Geolocation API.
-                    */
+                     * Handles errors from the Geolocation API.
+                     */
                     function handleLocationError(error) {
                         console.warn(`Geolocation error (${error.code}): ${error.message}`);
                         
@@ -863,6 +892,30 @@
                     nodeInfoDisplay.style.display = 'none';
                     // Ensure route is inactive on load
                     document.body.removeAttribute('data-route-active');
+
+                    // --- NEW: Hook up Debug Slider ---
+                    const userScaleSlider = document.getElementById('user-scale-slider');
+                    const userScaleValueDisplay = document.getElementById('user-scale-value');
+
+                    if (userScaleSlider) {
+                        // Set initial value from the variable
+                        userScaleSlider.value = USER_SCALE_FACTOR;
+                        userScaleValueDisplay.textContent = USER_SCALE_FACTOR.toFixed(2);
+
+                        userScaleSlider.addEventListener('input', (e) => {
+                            // 1. Update the global variable
+                            USER_SCALE_FACTOR = parseFloat(e.target.value);
+                            
+                            // 2. Update the text display
+                            userScaleValueDisplay.textContent = USER_SCALE_FACTOR.toFixed(2);
+                            
+                            // 3. Immediately re-calculate and move the user marker
+                            if (currentUserLocation) {
+                                updateUserLocation(currentUserLocation.lat, currentUserLocation.lon);
+                            }
+                        });
+                    }
+                    // --- END NEW ---
 
                 })
                 .catch(error => {
@@ -1012,9 +1065,12 @@
             const currentImageHeight = mapImage.offsetHeight;
             const widthRatio = currentImageWidth / originalImageWidth;
             const heightRatio = currentImageHeight / originalImageHeight;
-            const finalX = (basePixelCoords.x * NODE_SCALE_FACTOR) * widthRatio;
-            const finalY = (basePixelCoords.y * NODE_SCALE_FACTOR) * heightRatio;
-            console.log(`User location updated to (${lat}, ${lon}) -> (pixel: ${finalX.toFixed(2)}, ${finalY.toFixed(2)})`);
+            
+            // --- MODIFIED TO USE USER_SCALE_FACTOR ---
+            const finalX = (basePixelCoords.x * USER_SCALE_FACTOR) * widthRatio;
+            const finalY = (basePixelCoords.y * USER_SCALE_FACTOR) * heightRatio;
+            
+            console.log(`User location updated to (${lat}, ${lon}) -> (pixel: ${finalX.toFixed(2)}, ${finalY.toFixed(2)}) using scale ${USER_SCALE_FACTOR}`);
             const mapMinX = 0;
             const mapMaxX = currentImageWidth;
             const mapMinY = 0;
@@ -1128,8 +1184,11 @@
             const currentImageHeight = mapImage.offsetHeight;
             const widthRatio = currentImageWidth / originalImageWidth;
             const heightRatio = currentImageHeight / originalImageHeight;
-            const worldX = (basePixelCoords.x * NODE_SCALE_FACTOR) * widthRatio;
-            const worldY = (basePixelCoords.y * NODE_SCALE_FACTOR) * heightRatio;
+            
+            // --- MODIFIED TO USE USER_SCALE_FACTOR ---
+            const worldX = (basePixelCoords.x * USER_SCALE_FACTOR) * widthRatio;
+            const worldY = (basePixelCoords.y * USER_SCALE_FACTOR) * heightRatio;
+            
             const newViewX = (mapContainer.clientWidth / 2) - (worldX * scale);
             const newViewY = (mapContainer.clientHeight / 2) - (worldY * scale);
 
@@ -1182,15 +1241,16 @@
 
             const userPixel = convertGeoToPixel(location.lat, location.lon);
             
+            // --- MODIFIED TO USE USER_SCALE_FACTOR ---
             const scaledUserPixel = { 
-                x: userPixel.x * NODE_SCALE_FACTOR, 
-                y: userPixel.y * NODE_SCALE_FACTOR 
+                x: userPixel.x * USER_SCALE_FACTOR, 
+                y: userPixel.y * USER_SCALE_FACTOR 
             };
             
             nodesList.forEach(node => {
                 const nodePixel = { 
-                    x: node.x * NODE_SCALE_FACTOR, 
-                    y: node.y * NODE_SCALE_FACTOR 
+                    x: node.x * NODE_SCALE_FACTOR, // Node scale remains the same
+                    y: node.y * NODE_SCALE_FACTOR  // Node scale remains the same
                 };
                 const distSq = distanceSq(scaledUserPixel, nodePixel);
 
@@ -1212,8 +1272,10 @@
 
             const ON_CAMPUS_DISTANCE_THRESHOLD_SQ = 30000; 
             let userPixel = convertGeoToPixel(currentUserLocation.lat, currentUserLocation.lon);
-            let closestNodeBasePixel = closestNodeOnCampus ? { x: closestNodeOnCampus.x * NODE_SCALE_FACTOR, y: closestNodeOnCampus.y * NODE_SCALE_FACTOR } : null;
-            let actualDistanceSq = closestNodeBasePixel ? distanceSq({ x: userPixel.x * NODE_SCALE_FACTOR, y: userPixel.y * NODE_SCALE_FACTOR }, closestNodeBasePixel) : Infinity;
+            let closestNodeBasePixel = closestNodeOnCampus ? { x: closestNodeOnCampus.x * NODE_SCALE_FACTOR, y: closestNodeOnCampus.y * NODE_SCALE_FACTOR } : null; // Node scale
+            
+            // --- MODIFIED TO USE USER_SCALE_FACTOR ---
+            let actualDistanceSq = closestNodeBasePixel ? distanceSq({ x: userPixel.x * USER_SCALE_FACTOR, y: userPixel.y * USER_SCALE_FACTOR }, closestNodeBasePixel) : Infinity; // User scale vs Node scale
 
             if (actualDistanceSq < ON_CAMPUS_DISTANCE_THRESHOLD_SQ) {
                 return closestNodeOnCampus;
