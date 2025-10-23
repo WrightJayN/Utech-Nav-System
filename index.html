@@ -15,8 +15,7 @@
         }
 
         /* --- Keyframes for Slower Pan and Fade --- */
-        /* Total cycle: 20 seconds (two 10-second sequences) */
-        /* Note: Percentages remain the same, only total duration changes */
+        /* Total cycle: 40 seconds (two 20-second sequences) */
         @keyframes pan-and-fade {
             
             /* === Sequence 1: Pan Top-Left to Bottom-Right === */
@@ -24,18 +23,18 @@
                 background-position: 0% 0%; /* Start top-left */
                 opacity: 0;
             }
-            /* 1s / 20s = 5% */
+            /* 2s / 40s = 5% */
             5% {
-                opacity: 0.3; /* Fade in complete */
+                opacity: 0.3; /* Fade in complete (2s) */
             }
-            /* (1s + 8s) / 20s = 9s / 20s = 45% */
+            /* (2s + 16s) / 40s = 18s / 40s = 45% */
             45% {
-                background-position: 100% 100%; /* Pan complete */
+                background-position: 100% 100%; /* Pan complete (16s) */
                 opacity: 0.3; /* Stay visible */
             }
-            /* (9s + 1s) / 20s = 10s / 20s = 50% */
+            /* (18s + 2s) / 40s = 20s / 40s = 50% */
             50% {
-                opacity: 0; /* Fade out complete */
+                opacity: 0; /* Fade out complete (2s) */
             }
 
             /* === Sequence 2: Pan Bottom-Left to Top-Right === */
@@ -44,18 +43,18 @@
                 background-position: 0% 100%; /* Start bottom-left */
                 opacity: 0;
             }
-            /* (10s + 1s) / 20s = 11s / 20s = 55% */
+            /* (20s + 2s) / 40s = 22s / 40s = 55% */
             55% {
-                opacity: 0.3; /* Fade in complete */
+                opacity: 0.3; /* Fade in complete (2s) */
             }
-            /* (11s + 8s) / 20s = 19s / 20s = 95% */
+            /* (22s + 16s) / 40s = 38s / 40s = 95% */
             95% {
-                background-position: 100% 0%; /* Pan complete */
+                background-position: 100% 0%; /* Pan complete (16s) */
                 opacity: 0.3; /* Stay visible */
             }
-            /* (19s + 1s) / 20s = 20s / 20s = 100% */
+            /* (38s + 2s) / 40s = 40s / 40s = 100% */
             100% {
-                opacity: 0; /* Fade out complete */
+                opacity: 0; /* Fade out complete (2s) */
             }
         }
 
@@ -72,11 +71,9 @@
 <body class="bg-black text-white antialiased overflow-hidden">
 
     <!-- Single Animated Background -->
-    <!-- This div sits in the background and is fixed -->
     <div id="animated-bg" class="fixed inset-0 -z-10"></div>
 
     <!-- Homepage Content -->
-    <!-- This div holds all the homepage UI -->
     <div id="homepage" class="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 md:p-8">
         <!-- Dark overlay for text readability (stronger) -->
         <div class="absolute inset-0 bg-black/70 backdrop-blur-sm -z-10"></div>
@@ -98,10 +95,11 @@
         
         <!-- Bottom Left Buttons -->
         <footer class="absolute bottom-6 left-6 md:bottom-8 md:left-8 flex flex-col sm:flex-row gap-4">
-            <a href="mailto:jay.wright@example.com?subject=UTech Nav Sys Feedback" 
-               class="px-5 py-2 bg-gray-800/70 text-gray-200 text-sm font-semibold rounded-lg shadow-md backdrop-blur-md transition-all duration-300 hover:bg-gray-700/90 hover:text-white">
+            <!-- UPDATED: Changed from <a> to <button> -->
+            <button id="feedback-btn"
+                    class="px-5 py-2 bg-gray-800/70 text-gray-200 text-sm font-semibold rounded-lg shadow-md backdrop-blur-md transition-all duration-300 hover:bg-gray-700/90 hover:text-white">
                 Feedback
-            </a>
+            </button>
             <button id="credits-btn" 
                     class="px-5 py-2 bg-gray-800/70 text-gray-200 text-sm font-semibold rounded-lg shadow-md backdrop-blur-md transition-all duration-300 hover:bg-gray-700/90 hover:text-white">
                 Credits
@@ -110,18 +108,14 @@
     </div>
 
     <!-- App Container (Hidden by default) -->
-    <!-- This div will hold the iframe for navigator.html -->
     <div id="app-container" class="hidden">
         <!-- The iframe will be created and injected here by JavaScript -->
     </div>
 
     <!-- Credits Modal (Hidden by default) -->
     <div id="credits-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <!-- Modal Overlay -->
-        <div id="modal-overlay" class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
-        
-        <!-- Modal Content -->
-        <div classs="relative z-10 bg-gray-800 text-white rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-700">
+        <div id="credits-modal-overlay" class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+        <div class="relative z-10 bg-gray-800 text-white rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-700">
             <h3 class="text-2xl font-bold text-blue-300 mb-4">Credits</h3>
             <div class="space-y-3 text-gray-200">
                 <p>
@@ -133,8 +127,43 @@
                     <span>Google Gemini Pro</span>
                 </p>
             </div>
-            <button id="close-modal-btn" 
+            <button id="close-credits-modal-btn" 
                     class="mt-6 w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-75">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- NEW: Feedback Modal (Hidden by default) -->
+    <div id="feedback-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Modal Overlay -->
+        <div id="feedback-modal-overlay" class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative z-10 bg-gray-800 text-white rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-700">
+            
+            <!-- Form Content -->
+            <div id="feedback-form-content">
+                <h3 class="text-2xl font-bold text-blue-300 mb-4">Send Feedback</h3>
+                <p class="text-gray-300 mb-4">Have a suggestion or found a bug? Let us know!</p>
+                <textarea id="feedback-textarea" rows="5" 
+                          class="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                          placeholder="Type your feedback here..."></textarea>
+                <button id="submit-feedback-btn" 
+                        class="mt-4 w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-75">
+                    Submit via Email
+                </button>
+            </div>
+
+            <!-- Success Message -->
+            <div id="feedback-success-message" class="hidden text-center py-4">
+                <h4 class="text-xl font-semibold text-green-400 mb-3">Thank You!</h4>
+                <p class="text-gray-300">Your email client is opening to send your feedback.</p>
+            </div>
+
+            <!-- Close button (shared for both states) -->
+            <button id="close-feedback-modal-btn" 
+                    class="mt-2 w-full px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-75">
                 Close
             </button>
         </div>
@@ -147,43 +176,102 @@
         const appContainer = document.getElementById('app-container');
         const startBtn = document.getElementById('start-nav-btn');
         
+        // Credits Modal Elements
         const creditsModal = document.getElementById('credits-modal');
         const creditsBtn = document.getElementById('credits-btn');
-        const closeModalBtn = document.getElementById('close-modal-btn');
-        const modalOverlay = document.getElementById('modal-overlay');
+        const closeCreditsModalBtn = document.getElementById('close-credits-modal-btn');
+        const creditsModalOverlay = document.getElementById('credits-modal-overlay');
+        
+        // --- NEW: Feedback Modal Elements ---
+        const feedbackModal = document.getElementById('feedback-modal');
+        const feedbackBtn = document.getElementById('feedback-btn');
+        const closeFeedbackModalBtn = document.getElementById('close-feedback-modal-btn');
+        const feedbackModalOverlay = document.getElementById('feedback-modal-overlay');
+        const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
+        const feedbackTextarea = document.getElementById('feedback-textarea');
+        const feedbackFormContent = document.getElementById('feedback-form-content');
+        const feedbackSuccessMessage = document.getElementById('feedback-success-message');
 
         // --- Start Navigation ---
         startBtn.addEventListener('click', () => {
-            // Hide the homepage
             homepage.style.display = 'none';
-            
-            // Show the app container
             appContainer.style.display = 'block';
             
-            // Create and inject the iframe *only when the button is clicked*.
-            // This prevents navigator.html from loading in the background.
             const iframe = document.createElement('iframe');
             iframe.src = 'navigator.html';
             iframe.className = 'w-full h-screen border-0';
             
-            // Clear the container (if anything was in it) and add the new iframe
             appContainer.innerHTML = ''; 
             appContainer.appendChild(iframe);
         });
 
         // --- Credits Modal Logic ---
-        const showModal = () => {
+        const showCreditsModal = () => {
             creditsModal.style.display = 'flex';
         };
-        
-        const hideModal = () => {
+        const hideCreditsModal = () => {
             creditsModal.style.display = 'none';
         };
+        creditsBtn.addEventListener('click', showCreditsModal);
+        closeCreditsModalBtn.addEventListener('click', hideCreditsModal);
+        creditsModalOverlay.addEventListener('click', hideCreditsModal);
 
-        // Add event listeners to show and hide the modal
-        creditsBtn.addEventListener('click', showModal);
-        closeModalBtn.addEventListener('click', hideModal);
-        modalOverlay.addEventListener('click', hideModal);
+        
+        // --- NEW: Feedback Modal Logic ---
+        const showFeedbackModal = () => {
+            // Reset modal state to show form
+            feedbackFormContent.style.display = 'block';
+            feedbackSuccessMessage.style.display = 'none';
+            feedbackTextarea.value = '';
+            feedbackModal.style.display = 'flex';
+        };
+        
+        const hideFeedbackModal = () => {
+            feedbackModal.style.display = 'none';
+        };
+
+        // --- NEW: Submit Feedback Logic ---
+        submitFeedbackBtn.addEventListener('click', () => {
+            const feedbackBody = feedbackTextarea.value;
+            
+            // Simple validation
+            if (!feedbackBody.trim()) {
+                // We use a simple alert here because it's inside a modal
+                alert('Please enter your feedback before submitting.');
+                return;
+            }
+
+            // Get current date and time
+            const now = new Date();
+            // Format for locale (e.g., "10/22/2025, 4:20 PM")
+            const dateTimeString = now.toLocaleString([], { 
+                dateStyle: 'short', 
+                timeStyle: 'short'
+            });
+
+            // Format subject
+            const subject = `Utech Nav System Feedback {${dateTimeString}}`;
+            
+            // Create mailto link
+            const mailtoLink = `mailto:jay.n.wright06@gmail.com` +
+                             `?subject=${encodeURIComponent(subject)}` +
+                             `&body=${encodeURIComponent(feedbackBody)}`;
+
+            // Show success message and hide form
+            feedbackFormContent.style.display = 'none';
+            feedbackSuccessMessage.style.display = 'block';
+
+            // Attempt to open mail client
+            window.location.href = mailtoLink;
+
+            // Automatically close the modal after a short delay
+            setTimeout(hideFeedbackModal, 2500);
+        });
+
+        // Add event listeners to show and hide the feedback modal
+        feedbackBtn.addEventListener('click', showFeedbackModal);
+        closeFeedbackModalBtn.addEventListener('click', hideFeedbackModal);
+        feedbackModalOverlay.addEventListener('click', hideFeedbackModal);
 
     </script>
 </body>
